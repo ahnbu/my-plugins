@@ -1,6 +1,7 @@
 ---
 description: 세션 마무리 — handoff 파일 저장, CLAUDE.md 업데이트, git commit (git 환경 시)
 allowed-tools: Bash(git *), Read, Write, Edit, Glob, Grep, Task, AskUserQuestion
+plugin: my-session-wrap
 ---
 
 # Session Wrap-up (/wrap)
