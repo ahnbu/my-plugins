@@ -1,0 +1,12 @@
+{
+  "name": "my-claude-plugins",
+  "owner": { "name": "ahnbu" },
+  "plugins": [
+    {
+      "name": "my-session-wrap",
+      "description": "Session wrap-up workflow with multi-agent analysis pipeline",
+      "source": "./my-session-wrap",
+      "version": "1.0.0"
+    }
+  ]
+}
