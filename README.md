@@ -134,5 +134,6 @@ my-claude-plugins/   git push   github repo   /plugin update
 
 | 날짜 | 버전 | 플러그인 | 변경 내용 |
 |------|------|----------|-----------|
+| 2026-02-21 | my-cowork 1.1.0 | my-cowork | feat: SessionStart hook 추가 — /cowork 미등록 시 자동 등록, 충돌 시 경고 출력 |
 | 2026-02-21 | my-cowork 1.0.0 | my-cowork | 신규: doc-coauthoring 포크, AskUserQuestion 의무화 규칙 추가 |
 | 2026-02-21 | - | - | CLAUDE.md 추가: git commit 규칙 및 업데이트 워크플로우 문서화 |
