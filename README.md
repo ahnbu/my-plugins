@@ -101,6 +101,22 @@ Step 5. 실행 (handoff 저장 / CLAUDE.md 업데이트 / git commit)
 
 ---
 
+## 커맨드 자동 등록 동작 방식
+
+각 플러그인은 SessionStart 시 `hooks/ensure-commands.js`를 실행하여 커맨드 파일을 `~/.claude/commands/`에 자동 등록합니다.
+
+충돌 감지는 커맨드 파일 frontmatter의 `plugin:` 마커를 기준으로 처리합니다.
+
+| 상황 | 처리 |
+|------|------|
+| 커맨드 파일 없음 | 자동 설치 |
+| 파일 있음 + 동일 플러그인 마커 (`plugin: my-cowork` 등) | 내용 비교 후 변경 시 자동 갱신 |
+| 파일 있음 + 다른 마커 or 마커 없음 | ⚠️ 경고 출력 후 스킵 — 기존 설정 보호 |
+
+**충돌 시 교체 방법:** 해당 파일 삭제 후 Claude Code 재시작
+
+---
+
 ## 업데이트 구조
 
 ```
