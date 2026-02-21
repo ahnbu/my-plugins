@@ -135,6 +135,7 @@ my-claude-plugins/   git push   github repo   /plugin update
 | 날짜 | 버전 | 플러그인 | 변경 내용 |
 |------|------|----------|-----------|
 | 2026-02-21 | my-session-wrap 1.0.3 | my-session-wrap | fix: ensure-commands.js — 플러그인 원본 변경 시 커맨드 자동 갱신 (내용 비교 방식) |
+| 2026-02-21 | my-cowork 1.1.2 | my-cowork | fix: ensure-commands.js — 자동 갱신 방식으로 통일 (충돌 경고 제거) |
 | 2026-02-21 | my-cowork 1.1.1 | my-cowork | fix: hooks.json에서 once:true 제거 — 매 세션마다 커맨드 존재 여부 재확인 |
 | 2026-02-21 | my-session-wrap 1.0.2 | my-session-wrap | fix: hooks.json에서 once:true 제거 |
 | 2026-02-21 | my-cowork 1.1.0 | my-cowork | feat: SessionStart hook 추가 — /cowork 미등록 시 자동 등록, 충돌 시 경고 출력 |
