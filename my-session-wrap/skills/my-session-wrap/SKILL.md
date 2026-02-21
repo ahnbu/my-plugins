@@ -126,9 +126,30 @@ AskUserQuestion(
 
 템플릿은 `references/template.md` 참조.
 
-**저장 규칙:**
-- 위치: 현재 프로젝트 폴더 내 `handoff/` (없으면 생성)
-- 파일명: `handoff_NN_YYYYMMDD.md` (기존 파일의 NN +1)
+**[필수] 파일 생성 전 아래 스크립트를 반드시 실행한다 (절대 생략 불가):**
+
+```bash
+HANDOFF_DIR="handoff"
+DATE=$(date +%Y%m%d)
+mkdir -p "$HANDOFF_DIR"
+MAX_NN=0
+for f in "$HANDOFF_DIR"/handoff_*_${DATE}.md; do
+  [ -f "$f" ] || continue
+  NN=$(basename "$f" | sed 's/handoff_0*\([0-9]*\)_.*/\1/')
+  [ "${NN:-0}" -gt "$MAX_NN" ] && MAX_NN=$NN
+done
+NEXT_NN=$(printf "%02d" $((MAX_NN + 1)))
+NEW_FILE="$HANDOFF_DIR/handoff_${NEXT_NN}_${DATE}.md"
+if [ -f "$NEW_FILE" ]; then
+  echo "ERROR: $NEW_FILE already exists" >&2
+  exit 1
+fi
+touch "$NEW_FILE"
+echo "$NEW_FILE"
+```
+
+- stdout으로 출력된 경로(예: `handoff/handoff_03_20260221.md`)를 Write 도구의 대상으로 사용
+- **스크립트 실패(exit 1) 시**: 사용자에게 오류 보고 후 중단. 직접 파일명을 결정하거나 기존 파일에 쓰는 것은 절대 금지
 - §3 피드백 루프는 AI 초안 작성 후 "검토·수정해 주세요" 안내
 
 ### CLAUDE.md 업데이트
