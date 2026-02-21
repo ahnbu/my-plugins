@@ -7,6 +7,12 @@
       "description": "Session wrap-up workflow with multi-agent analysis pipeline",
       "source": "./my-session-wrap",
       "version": "1.0.1"
+    },
+    {
+      "name": "my-cowork",
+      "description": "Forked doc-coauthoring skill with AskUserQuestion mandatory rule",
+      "source": "./my-cowork",
+      "version": "1.0.0"
     }
   ]
 }

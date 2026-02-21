@@ -1,0 +1,7 @@
+{
+  "name": "my-cowork",
+  "version": "1.0.0",
+  "description": "Forked doc-coauthoring skill with AskUserQuestion mandatory rule",
+  "author": { "name": "ahnbu" },
+  "license": "MIT"
+}
