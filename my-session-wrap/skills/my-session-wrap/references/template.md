@@ -5,6 +5,7 @@
 ```markdown
 # Handoff — [작업명] (세션 NN)
 > 날짜: YYYY-MM-DD
+> 세션 ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 > 상태: 진행중 | 세션완료 | 전체완료
 
 ---

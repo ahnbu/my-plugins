@@ -94,6 +94,8 @@ AskUserQuestion(
 )
 ```
 
+> **주의:** MEMORY.md(auto memory)는 이 워크플로우의 범위가 아니다. 선택지에 포함하지 마라. auto memory는 작업 중 자연스럽게 갱신되는 별도 기능이다.
+
 ### Git 없는 경우 → 텍스트 제안 후 승인
 
 아래 형식으로 제안을 출력하고 "진행할까요?" 1회 확인 후 실행한다.
@@ -125,6 +127,18 @@ AskUserQuestion(
 ### handoff 파일 작성
 
 템플릿은 `references/template.md` 참조.
+
+**[필수] 세션 ID 획득 (절대 생략 불가):**
+
+SessionStart hook(`capture-session-id.sh`)이 `$CLAUDE_SESSION_ID` 환경변수를 자동 설정한다.
+
+```bash
+echo "$CLAUDE_SESSION_ID"
+```
+
+- 환경변수 값을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
+- 이 세션 ID로 `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` 조회하여 검증 가능
+- 환경변수가 비어있으면 `세션 ID: (획득 실패)` 로 기재하고 사용자에게 안내
 
 **[필수] 파일 생성 전 아래 스크립트를 반드시 실행한다 (절대 생략 불가):**
 
