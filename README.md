@@ -20,6 +20,10 @@ my-claude-plugins/
 │   │   └── learning-extractor.md
 │   ├── commands/
 │   │   └── wrap.md
+│   ├── hooks/
+│   │   ├── hooks.json
+│   │   ├── ensure-commands.js
+│   │   └── capture-session-id.sh
 │   └── skills/
 │       ├── my-session-wrap/
 │       ├── session-analyzer/
@@ -84,6 +88,15 @@ Step 5. 실행 (handoff 저장 / CLAUDE.md 업데이트 / git commit)
 | `learning-extractor` | 레슨·실수·발견 추출 (TIL 형식) |
 | `followup-suggester` | 미완료 작업·다음 세션 우선순위 제안 |
 | `duplicate-checker` | 기존 CLAUDE.md·handoff 파일과 중복 검증 |
+
+### 세션 ID 자동 캡처
+
+SessionStart hook(`capture-session-id.sh`)이 stdin에서 `session_id`를 읽어 `CLAUDE_ENV_FILE`에 export한다.
+이후 모든 Bash 명령에서 `$CLAUDE_SESSION_ID`로 현재 세션 ID에 접근 가능.
+
+- **handoff 문서**: 헤더에 `세션 ID:` 필드로 자동 기입
+- **세션 검증**: `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` 조회로 사후 검증 가능
+- **동시 세션 안전**: hook stdin에서 직접 받으므로 동시 세션 환경에서도 정확
 
 ### 포함된 스킬
 
@@ -188,6 +201,7 @@ my-claude-plugins/          git push          /plugin update
 
 | 날짜 | 버전 | 플러그인 | 변경 내용 |
 |------|------|----------|-----------|
+| 2026-02-22 | my-session-wrap 1.1.0 | my-session-wrap | feat: handoff 문서에 세션 ID 필수 기록 — SessionStart hook으로 $CLAUDE_SESSION_ID 자동 캡처 |
 | 2026-02-22 | my-session-dashboard 1.0.0 | my-session-dashboard | 신규: 세션 대시보드 플러그인 — JSONL 전처리 + 브라우저 뷰어, /ss 커맨드 |
 | 2026-02-21 | my-session-wrap 1.0.3 | my-session-wrap | fix: ensure-commands.js — 플러그인 원본 변경 시 커맨드 자동 갱신 (내용 비교 방식) |
 | 2026-02-21 | my-cowork 1.1.3 | my-cowork | feat: 플러그인 마커 기반 충돌 감지 — 내 파일은 자동 갱신, 타 플러그인 파일은 경고 후 스킵 |

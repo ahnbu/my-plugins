@@ -1,6 +1,6 @@
 {
   "name": "my-session-wrap",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Session wrap-up workflow with multi-agent analysis, handoff document generation, and session history tools",
   "author": { "name": "personal" },
   "license": "MIT"
