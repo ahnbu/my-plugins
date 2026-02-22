@@ -1,66 +1,81 @@
-# My Claude Plugins — 개발 가이드
+# CLAUDE.md
 
-이 저장소는 개인용 Claude Code 플러그인을 관리하는 GitHub 저장소입니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 플러그인 업데이트 워크플로우
+## 저장소 개요
 
-플러그인 파일을 직접 수정하지 말고 아래 순서를 따르세요.
+개인용 Claude Code 플러그인 마켓플레이스. 각 플러그인은 독립 디렉토리로 관리되며 GitHub을 통해 배포.
+
+## 아키텍처
+
+### 플러그인 구조
 
 ```
-1. 로컬에서 파일 수정
-2. CHANGELOG 업데이트 (README.md)
-3. git commit & push
-4. /plugin update <플러그인명>
+<plugin-name>/
+├── .claude-plugin/plugin.json    # 메타정보 (name, version, description)
+├── hooks/
+│   ├── hooks.json                # SessionStart 훅 정의
+│   └── ensure-commands.js        # 커맨드 자동 등록 스크립트
+├── commands/*.md                 # 슬래시 커맨드 정의
+├── agents/*.md                   # 서브에이전트 정의
+└── skills/<skill-name>/SKILL.md  # 스킬 정의
 ```
+
+### 마켓플레이스 등록
+
+`.claude-plugin/marketplace.json`이 마스터 메타파일. 각 플러그인의 `source` (상대경로)와 `version`을 기록.
+
+### 커맨드 자동 등록 (ensure-commands.js)
+
+SessionStart 훅으로 매 세션 실행. 플러그인의 `commands/` 파일을 `~/.claude/commands/`에 복사.
+
+**충돌 감지**: 커맨드 파일 frontmatter의 `plugin: <name>` 마커로 소유권 판정.
+- 마커 없거나 다른 플러그인 → 경고 출력 후 스킵 (기존 보호)
+- 같은 플러그인 마커 → 내용 비교 후 변경 시 자동 갱신
+- 파일 없음 → 자동 설치
+
+### Frontmatter 규칙
+
+**Commands**: `plugin: <name>` 마커 필수 (충돌 감지용)
+**Agents**: `tools`, `model`, `color` 지정
+**Skills**: `description`은 한 줄 (멀티라인 불가)
+
+## 현재 플러그인
+
+| 플러그인 | 설명 | 커맨드 |
+|----------|------|--------|
+| `my-session-wrap` | 세션 마무리 워크플로우 (5개 에이전트 병렬분석 → 검증 → handoff/CLAUDE.md/commit) | `/wrap` |
+| `my-cowork` | doc-coauthoring 포크 (AskUserQuestion 의무화) | `/cowork` |
+
+## 배포 워크플로우
+
+```
+로컬 수정 → git commit & push → /plugin update <플러그인명>
+```
+
+`plugins/marketplaces/my-claude-plugins/` (Claude가 읽는 경로)를 직접 수정하지 말 것.
 
 ## Git Commit 규칙
 
-### 커밋 메시지 형식
+### 형식
 
 ```
 <타입>(<플러그인명>): <한 줄 요약>
-
-<본문 — 필요 시>
 ```
 
-### 타입 목록
+### 타입
 
-| 타입 | 언제 사용 |
-|------|-----------|
-| `feat` | 새 플러그인·스킬·커맨드·에이전트 추가 |
-| `fix` | 버그 수정, 잘못된 동작 교정 |
-| `refactor` | 기능 변화 없이 구조·내용 정리 |
-| `docs` | README.md, CLAUDE.md 등 문서만 변경 |
-| `chore` | 메타데이터(plugin.json, marketplace.json) 수정 |
-
-### 커밋 예시
-
-```
-feat(my-cowork): doc-coauthoring 포크 — AskUserQuestion 의무화
-
-- example-skills:doc-coauthoring SKILL.md 포크
-- 사용자 질문 시 AskUserQuestion 도구 필수 규칙 추가
-- 질문 최대 4개로 압축, 개방형은 Other로 수용
-```
-
-```
-fix(my-session-wrap): duplicate-checker 중복 감지 조건 수정
-```
-
-```
-docs: README.md changelog 섹션 추가
-```
+| 타입 | 사용 | 버전 영향 |
+|------|------|-----------|
+| `feat` | 새 기능 추가 | minor ↑ |
+| `fix` | 버그 수정 | patch ↑ |
+| `refactor` | 구조 정리 (기능 불변) | - |
+| `docs` | 문서만 변경 | - |
+| `chore` | 메타데이터 수정 | - |
 
 ### 규칙
 
-- 커밋 메시지는 **한국어**로 작성 (타입·플러그인명은 영어 유지)
-- 한 커밋에 하나의 플러그인만 수정 (여러 플러그인 동시 수정 금지)
-- 플러그인 기능 변경 시 반드시 README.md changelog도 함께 업데이트
-- 직접 파일 수정 후 Claude에게 커밋 요청 시, Claude가 자동으로 위 규칙을 따름
-
-## 플러그인 버전 관리
-
-- `plugin.json`의 `version` 필드를 Semantic Versioning으로 관리
-  - `feat` → minor 버전 증가 (1.0.0 → 1.1.0)
-  - `fix` → patch 버전 증가 (1.0.0 → 1.0.1)
-  - 하위 호환 불가 변경 → major 버전 증가 (1.0.0 → 2.0.0)
+- 커밋 메시지는 한국어 (타입·플러그인명은 영어)
+- 한 커밋에 하나의 플러그인만 수정
+- 기능 변경 시 README.md changelog도 함께 업데이트
+- `plugin.json`의 `version`을 Semantic Versioning으로 관리
