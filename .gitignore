@@ -13,3 +13,9 @@ node_modules/
 *.tmp
 *.log
 /tmp/
+
+# bkit (auto-generated)
+.bkit/
+.claude/
+docs/.bkit-memory.json
+docs/.pdca-status.json

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// build.js — Claude Code JSONL 세션을 대시보드용 JSON으로 변환
+// build.js — Claude Code JSONL 세션을 self-contained 대시보드 HTML로 변환 (증분 빌드)
 const fs = require("fs");
 const path = require("path");
 
@@ -9,9 +9,8 @@ const CLAUDE_DIR = path.join(
 );
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects");
 const DIST_DIR = path.join(CLAUDE_DIR, "session-dashboard");
-const SESSIONS_DIR = path.join(DIST_DIR, "sessions");
+const CACHE_FILE = path.join(DIST_DIR, ".build-cache.json");
 
-// 한국어 불용어 (조사, 접속사, 대명사 등)
 const STOPWORDS = new Set([
   // 조사
   "은", "는", "이", "가", "을", "를", "에", "에서", "의", "와", "과",
@@ -36,12 +35,32 @@ const STOPWORDS = new Set([
   "in", "on", "at", "to", "for", "of", "with", "by", "from",
   "and", "or", "but", "not", "so", "if", "then",
   "how", "please", "help", "want", "need", "make", "let",
+  // 시스템 태그 잔여물
+  "command", "message", "name", "args", "local", "caveat",
+  "ide", "opened", "file", "user", "system", "reminder",
+  "screenshot", "pasted", "image", "png", "jpg", "jpeg",
+  // Plan 실행 boilerplate
+  "implement", "following", "plan", "context", "resume",
+  // 경로 조각
+  "users", "claude", "cloudsync", "download",
 ]);
+
+function stripSystemTags(text) {
+  if (!text) return "";
+  text = text.replace(
+    /<(command-message|command-name|command-args|local-command-caveat|ide_opened_file|system-reminder|user-prompt-submit-hook|antml:\w+)[^>]*>[\s\S]*?<\/\1>/gi,
+    ""
+  );
+  text = text.replace(
+    /<\/?(command-message|command-name|command-args|local-command-caveat|ide_opened_file|system-reminder|user-prompt-submit-hook|antml:\w+)[^>]*>/gi,
+    ""
+  );
+  return text.trim();
+}
 
 function extractKeywords(text, count = 3) {
   if (!text) return [];
 
-  // 특수문자 제거, 공백으로 분리
   const words = text
     .replace(/[^\w\sㄱ-ㅎㅏ-ㅣ가-힣-]/g, " ")
     .split(/\s+/)
@@ -50,10 +69,11 @@ function extractKeywords(text, count = 3) {
       if (w.length <= 1) return false;
       if (STOPWORDS.has(w)) return false;
       if (/^\d+$/.test(w)) return false;
+      if (/^[0-9a-f]{8,}$/.test(w)) return false;
+      if (/^\d{4}-?\d{2}-?\d{2}/.test(w)) return false;
       return true;
     });
 
-  // 중복 제거하면서 순서 유지
   const seen = new Set();
   const unique = [];
   for (const w of words) {
@@ -66,17 +86,74 @@ function extractKeywords(text, count = 3) {
   return unique.slice(0, count);
 }
 
-function getFirstUserMessage(entries) {
+// 여러 소스에서 키워드 폴백 추출
+function extractKeywordsWithFallback(entries) {
+  // 1차: 첫 번째 user 메시지
   for (const entry of entries) {
     if (entry.type === "user" && entry.message?.content) {
-      const content = entry.message.content;
-      if (typeof content === "string") return content;
-      // content가 배열인 경우
-      if (Array.isArray(content)) {
-        const textBlock = content.find((b) => b.type === "text");
-        if (textBlock) return textBlock.text;
+      const text = stripSystemTags(getTextContent(entry.message.content));
+      const kw = extractKeywords(text);
+      if (kw.length > 0) return { keywords: kw, firstMessage: text };
+    }
+  }
+
+  // 2차: 두 번째~세 번째 user 메시지
+  let userCount = 0;
+  for (const entry of entries) {
+    if (entry.type === "user" && entry.message?.content) {
+      userCount++;
+      if (userCount <= 1) continue;
+      if (userCount > 3) break;
+      const text = stripSystemTags(getTextContent(entry.message.content));
+      const kw = extractKeywords(text);
+      if (kw.length > 0) return { keywords: kw, firstMessage: text };
+    }
+  }
+
+  // 3차: 첫 번째 assistant 텍스트 응답
+  for (const entry of entries) {
+    if (entry.type === "assistant" && entry.message?.content) {
+      if (Array.isArray(entry.message.content)) {
+        for (const block of entry.message.content) {
+          if (block.type === "text" && block.text) {
+            const kw = extractKeywords(block.text);
+            if (kw.length > 0) return { keywords: kw, firstMessage: "" };
+          }
+        }
       }
     }
+  }
+
+  // 4차: 도구 이름 + 프로젝트명 폴백
+  const toolSet = new Set();
+  for (const entry of entries) {
+    if (entry.type === "assistant" && entry.message?.content) {
+      if (Array.isArray(entry.message.content)) {
+        for (const block of entry.message.content) {
+          if (block.type === "tool_use" && block.name) {
+            toolSet.add(block.name);
+          }
+        }
+      }
+    }
+  }
+  const cwd = findCwd(entries);
+  const projectName = cwd ? cwd.split(/[/\\]/).pop() : "";
+  const fallback = [];
+  if (projectName) fallback.push(projectName);
+  for (const t of toolSet) {
+    if (fallback.length >= 3) break;
+    fallback.push(t);
+  }
+
+  return { keywords: fallback.slice(0, 3), firstMessage: "" };
+}
+
+function getTextContent(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    const textBlock = content.find((b) => b.type === "text");
+    if (textBlock) return textBlock.text;
   }
   return "";
 }
@@ -101,7 +178,7 @@ function parseJSONL(filePath) {
     try {
       entries.push(JSON.parse(line));
     } catch {
-      // 파싱 실패한 줄은 스킵
+      // skip
     }
   }
   return entries;
@@ -109,12 +186,18 @@ function parseJSONL(filePath) {
 
 function formatTimestamp(isoStr) {
   const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return null;
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   const hh = String(d.getHours()).padStart(2, "0");
   const min = String(d.getMinutes()).padStart(2, "0");
   return `${yyyy}${mm}${dd}_${hh}${min}`;
+}
+
+function normalizeProjectPath(p) {
+  if (!p) return "";
+  return p.replace(/^([a-z]):/, (_, letter) => letter.toUpperCase() + ":");
 }
 
 function processSession(filePath) {
@@ -125,36 +208,34 @@ function processSession(filePath) {
   const firstEntry = entries[0];
   const lastEntry = entries[entries.length - 1];
 
-  // 첫 번째 사용자 메시지에서 키워드 추출
-  const firstUserMsg = getFirstUserMessage(entries);
-  const keywords = extractKeywords(firstUserMsg);
-  const timeStr = formatTimestamp(firstEntry.timestamp);
+  const timestamp = firstEntry.timestamp;
+  if (!timestamp || isNaN(new Date(timestamp).getTime())) return null;
+
+  // 키워드 폴백 추출
+  const { keywords, firstMessage } = extractKeywordsWithFallback(entries);
+  const timeStr = formatTimestamp(timestamp);
   const title = [timeStr, ...keywords].join("_");
 
-  // 통계 계산
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let messageCount = 0;
   let toolUseCount = 0;
   const models = new Set();
   const toolNames = {};
-
-  // 대화 내용 구성
   const messages = [];
 
   for (const entry of entries) {
     if (entry.type === "user") {
       messageCount++;
+      const rawText = getTextFromMessage(entry.message);
       messages.push({
         role: "user",
-        text: getTextFromMessage(entry.message),
+        text: stripSystemTags(rawText),
         timestamp: entry.timestamp,
       });
     } else if (entry.type === "assistant" && entry.message) {
       const msg = entry.message;
       if (msg.model) models.add(msg.model);
-
-      // 토큰 사용량
       if (msg.usage) {
         totalInputTokens +=
           (msg.usage.input_tokens || 0) +
@@ -162,12 +243,9 @@ function processSession(filePath) {
           (msg.usage.cache_read_input_tokens || 0);
         totalOutputTokens += msg.usage.output_tokens || 0;
       }
-
-      // 내용 분석
       if (Array.isArray(msg.content)) {
         const textParts = [];
         const tools = [];
-
         for (const block of msg.content) {
           if (block.type === "text" && block.text) {
             textParts.push(block.text);
@@ -175,32 +253,22 @@ function processSession(filePath) {
             toolUseCount++;
             const name = block.name || "unknown";
             toolNames[name] = (toolNames[name] || 0) + 1;
-            tools.push({
-              name,
-              input: block.input,
-            });
+            tools.push({ name, input: block.input });
           } else if (block.type === "thinking" && block.thinking) {
-            // thinking은 별도로 저장
             textParts.push(`[thinking] ${block.thinking}`);
           }
         }
-
         if (textParts.length > 0 || tools.length > 0) {
-          const msgObj = {
-            role: "assistant",
-            timestamp: entry.timestamp,
-          };
+          const msgObj = { role: "assistant", timestamp: entry.timestamp };
           if (textParts.length > 0) msgObj.text = textParts.join("\n");
           if (tools.length > 0) msgObj.tools = tools;
           messages.push(msgObj);
         }
       }
-    } else if (entry.type === "tool_result" || entry.type === "progress") {
-      // tool_result는 별도로 처리하지 않음 (tool_use에서 이미 캡처)
     }
   }
 
-  // 중복 assistant 메시지 병합 (같은 requestId에서 온 스트리밍 청크들)
+  // Merge streaming chunks
   const mergedMessages = [];
   for (const msg of messages) {
     const prev = mergedMessages[mergedMessages.length - 1];
@@ -210,27 +278,31 @@ function processSession(filePath) {
       msg.role === "assistant" &&
       prev.timestamp === msg.timestamp
     ) {
-      // 같은 타임스탬프의 assistant 메시지 병합
       if (msg.text) {
         prev.text = prev.text ? prev.text + "\n" + msg.text : msg.text;
       }
       if (msg.tools) {
-        prev.tools = prev.tools
-          ? [...prev.tools, ...msg.tools]
-          : msg.tools;
+        prev.tools = prev.tools ? [...prev.tools, ...msg.tools] : msg.tools;
       }
     } else {
       mergedMessages.push({ ...msg });
     }
   }
 
+  const project = normalizeProjectPath(findCwd(entries));
+
+  // firstMessage: 시스템 태그 제거된 첫 user 메시지 (폴백에서 가져옴)
+  const displayFirstMsg = firstMessage || stripSystemTags(
+    messages.find((m) => m.role === "user")?.text || ""
+  );
+
   const metadata = {
     sessionId,
     title,
     keywords,
-    timestamp: firstEntry.timestamp,
+    timestamp,
     lastTimestamp: lastEntry.timestamp,
-    project: findCwd(entries),
+    project,
     gitBranch: entries.find((e) => e.gitBranch)?.gitBranch || "",
     models: [...models],
     messageCount,
@@ -238,7 +310,8 @@ function processSession(filePath) {
     totalInputTokens,
     totalOutputTokens,
     toolNames,
-    firstMessage: firstUserMsg.substring(0, 200),
+    firstMessage: displayFirstMsg.substring(0, 200),
+    projectDisplay: project,
   };
 
   return { metadata, messages: mergedMessages };
@@ -251,25 +324,43 @@ function findCwd(entries) {
   return "";
 }
 
+// ── 캐시 관리 ──
+function loadCache() {
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+    }
+  } catch {
+    // 캐시 손상 시 무시
+  }
+  return {};
+}
+
+function saveCache(cache) {
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache));
+}
+
 function main() {
   console.log("Claude Session Dashboard — 빌드 시작\n");
 
   if (!fs.existsSync(PROJECTS_DIR)) {
-    console.error(`❌ Claude 프로젝트 디렉토리를 찾을 수 없습니다: ${PROJECTS_DIR}`);
+    console.error(
+      `❌ Claude 프로젝트 디렉토리를 찾을 수 없습니다: ${PROJECTS_DIR}`
+    );
     process.exit(1);
   }
 
-  // 출력 디렉토리 생성
-  fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+  fs.mkdirSync(DIST_DIR, { recursive: true });
 
-  // HTML 템플릿 복사
   const htmlSrc = path.join(__dirname, "index.html");
   const htmlDest = path.join(DIST_DIR, "index.html");
-  if (fs.existsSync(htmlSrc)) {
-    fs.copyFileSync(htmlSrc, htmlDest);
-  }
 
-  const allSessions = [];
+  const cache = loadCache();
+  const newCache = {};
+  const allResults = [];
+  let newCount = 0;
+  let cachedCount = 0;
+
   const projects = fs.readdirSync(PROJECTS_DIR);
 
   for (const projectDir of projects) {
@@ -277,47 +368,74 @@ function main() {
     if (!fs.statSync(projectPath).isDirectory()) continue;
 
     const files = fs.readdirSync(projectPath);
-
     for (const file of files) {
       if (!file.endsWith(".jsonl")) continue;
-
       const filePath = path.join(projectPath, file);
+      const sessionId = path.basename(file, ".jsonl");
+
       try {
+        const stat = fs.statSync(filePath);
+        const mtime = stat.mtimeMs;
+
+        // 캐시 히트: mtime 동일하면 재사용
+        if (cache[sessionId] && cache[sessionId].mtime === mtime) {
+          const cached = cache[sessionId];
+          if (cached.metadata.messageCount > 0) {
+            allResults.push({
+              metadata: cached.metadata,
+              messages: cached.messages,
+            });
+            newCache[sessionId] = cached;
+            cachedCount++;
+          }
+          continue;
+        }
+
+        // 캐시 미스: 새로 처리
         const result = processSession(filePath);
         if (!result) continue;
-
-        result.metadata.projectDisplay = result.metadata.project;
-        allSessions.push(result.metadata);
-
-        // 개별 세션 대화 저장
-        const sessionFile = path.join(
-          SESSIONS_DIR,
-          `${result.metadata.sessionId}.json`
-        );
-        fs.writeFileSync(
-          sessionFile,
-          JSON.stringify(result.messages, null, 2)
-        );
+        if (result.metadata.messageCount === 0) continue;
+        allResults.push(result);
+        newCache[sessionId] = {
+          mtime,
+          metadata: result.metadata,
+          messages: result.messages,
+        };
+        newCount++;
       } catch (err) {
         console.warn(`⚠️  세션 파싱 실패: ${file} — ${err.message}`);
       }
     }
   }
 
-  // 최신순 정렬
-  allSessions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // 메타데이터 저장
-  fs.writeFileSync(
-    path.join(DIST_DIR, "sessions.json"),
-    JSON.stringify(allSessions, null, 2)
+  // Sort newest first
+  allResults.sort(
+    (a, b) => new Date(b.metadata.timestamp) - new Date(a.metadata.timestamp)
   );
 
-  console.log(`✅ ${allSessions.length}개 세션 처리 완료`);
-  console.log(`📁 출력: ${DIST_DIR}/`);
-  console.log(`   - sessions.json (메타데이터)`);
-  console.log(`   - sessions/*.json (대화 내용)`);
-  console.log(`\n🌐 브라우저에서 열기: ${path.join(DIST_DIR, "index.html")}`);
+  const allSessions = allResults.map((r) => r.metadata);
+  const sessionsData = {};
+  for (const r of allResults) {
+    sessionsData[r.metadata.sessionId] = r.messages;
+  }
+
+  // Build self-contained HTML
+  const metaJson = JSON.stringify(allSessions).replace(/<\//g, "<\\/");
+  const dataJson = JSON.stringify(sessionsData).replace(/<\//g, "<\\/");
+  let html = fs.readFileSync(htmlSrc, "utf8");
+  const dataScript = `<script>
+window.__SESSIONS_META__ = ${metaJson};
+window.__SESSIONS_DATA__ = ${dataJson};
+</script>`;
+  html = html.replace("<!-- __SESSION_DATA__ -->", dataScript);
+  fs.writeFileSync(htmlDest, html);
+
+  // 캐시 저장
+  saveCache(newCache);
+
+  console.log(`✅ ${allResults.length}개 세션 (신규 ${newCount}, 캐시 ${cachedCount})`);
+  console.log(`📁 출력: ${htmlDest}`);
+  console.log(`\n🌐 브라우저에서 열기: ${htmlDest}`);
 }
 
 main();

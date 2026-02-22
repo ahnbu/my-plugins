@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claude Session Dashboard</title>
+<title>Claude 세션 대시보드</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -34,11 +34,11 @@
     overflow: hidden;
   }
 
-  /* Layout */
+  /* Layout: header-row1, filters-row, content */
   .app {
     display: grid;
     grid-template-columns: 380px 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     height: 100vh;
   }
 
@@ -89,21 +89,16 @@
     color: var(--text-dim);
   }
 
-  /* Sidebar */
-  .sidebar {
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-  }
-
+  /* Filters — header 2nd row */
   .filters {
-    padding: 12px;
+    grid-column: 1 / -1;
+    padding: 8px 20px;
+    background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    overflow-x: auto;
   }
 
   .filter-btn {
@@ -119,6 +114,15 @@
 
   .filter-btn:hover { border-color: var(--accent); color: var(--text); }
   .filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
 
   .session-list {
     flex: 1;
@@ -242,7 +246,6 @@
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 4px;
-    text-transform: uppercase;
   }
 
   .role-badge.user { background: #1f6feb44; color: var(--accent); }
@@ -368,7 +371,6 @@
     font-size: 13px;
   }
 
-  /* Loading */
   .loading {
     display: flex;
     align-items: center;
@@ -381,28 +383,30 @@
 <body>
 <div class="app">
   <div class="header">
-    <h1>Claude Sessions</h1>
+    <h1>Claude 세션</h1>
     <span class="stats" id="stats"></span>
     <div class="search-box">
-      <input type="text" id="search" placeholder="Search sessions... (title, keyword, message)">
+      <input type="text" id="search" placeholder="세션 검색... (제목, 키워드, 내용)">
     </div>
   </div>
 
+  <div class="filters" id="filters"></div>
+
   <div class="sidebar">
-    <div class="filters" id="filters"></div>
     <div class="session-list" id="sessionList">
-      <div class="loading">Loading sessions...</div>
+      <div class="loading">세션 로딩 중...</div>
     </div>
   </div>
 
   <div class="main" id="main">
     <div class="empty-state">
       <div class="icon">&#x1f4ac;</div>
-      <div>Select a session to view the conversation</div>
+      <div>세션을 선택하면 대화 내용을 볼 수 있습니다</div>
     </div>
   </div>
 </div>
 
+<!-- __SESSION_DATA__ -->
 <script>
 (function() {
   let sessions = [];
@@ -410,27 +414,24 @@
   let activeFilter = "all";
   let searchQuery = "";
 
-  // ── Data Loading ──
-  async function loadSessions() {
-    try {
-      const resp = await fetch("sessions.json");
-      sessions = await resp.json();
-      renderStats();
-      buildFilters();
-      renderSessionList();
-    } catch (err) {
+  const ROLE_LABELS = { user: "사용자", assistant: "어시스턴트" };
+
+  // ── Data Loading (inline) ──
+  function loadSessions() {
+    sessions = window.__SESSIONS_META__ || [];
+    if (sessions.length === 0) {
       document.getElementById("sessionList").innerHTML =
-        '<div class="no-results">sessions.json not found. Run: /ss</div>';
+        '<div class="no-results">세션이 없습니다. /ss를 실행하세요</div>';
+      return;
     }
+    renderStats();
+    buildFilters();
+    renderSessionList();
   }
 
-  async function loadConversation(sessionId) {
-    try {
-      const resp = await fetch(`sessions/${sessionId}.json`);
-      return await resp.json();
-    } catch {
-      return [];
-    }
+  function loadConversation(sessionId) {
+    const data = window.__SESSIONS_DATA__ || {};
+    return data[sessionId] || [];
   }
 
   // ── Stats ──
@@ -444,7 +445,7 @@
       ? (totalTokens / 1_000).toFixed(0) + "K"
       : totalTokens;
     document.getElementById("stats").textContent =
-      `${sessions.length} sessions | ${tokenStr} tokens`;
+      `${sessions.length}개 세션 | ${tokenStr} 토큰`;
   }
 
   // ── Filters ──
@@ -452,9 +453,9 @@
     const projects = [...new Set(sessions.map((s) => s.projectDisplay))];
     const container = document.getElementById("filters");
 
-    let html = '<button class="filter-btn active" data-filter="all">All</button>';
+    let html = '<button class="filter-btn active" data-filter="all">전체</button>';
     for (const p of projects) {
-      const short = p.split("/").pop() || p;
+      const short = p.split(/[/\\]/).pop() || p;
       html += `<button class="filter-btn" data-filter="${escapeAttr(p)}">${escapeHtml(short)}</button>`;
     }
     container.innerHTML = html;
@@ -495,7 +496,7 @@
     const container = document.getElementById("sessionList");
 
     if (filtered.length === 0) {
-      container.innerHTML = '<div class="no-results">No sessions found</div>';
+      container.innerHTML = '<div class="no-results">검색 결과 없음</div>';
       return;
     }
 
@@ -517,8 +518,8 @@
             <div class="session-preview">${escapeHtml(s.firstMessage || "")}</div>
             <div class="session-meta">
               <span>${dateStr} ${timeStr}</span>
-              <span>${s.messageCount || 0} msgs</span>
-              <span>${s.toolUseCount || 0} tools</span>
+              <span>${s.messageCount || 0} 메시지</span>
+              <span>${s.toolUseCount || 0} 도구</span>
               ${(s.keywords || []).map((k) => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join("")}
             </div>
           </div>
@@ -528,7 +529,7 @@
   }
 
   // ── Conversation View ──
-  window.selectSession = async function(sessionId) {
+  window.selectSession = function(sessionId) {
     activeSessionId = sessionId;
     renderSessionList();
 
@@ -536,9 +537,7 @@
     if (!meta) return;
 
     const mainEl = document.getElementById("main");
-    mainEl.innerHTML = '<div class="loading">Loading conversation...</div>';
-
-    const messages = await loadConversation(sessionId);
+    const messages = loadConversation(sessionId);
 
     const duration = meta.lastTimestamp && meta.timestamp
       ? formatDuration(new Date(meta.lastTimestamp) - new Date(meta.timestamp))
@@ -552,11 +551,11 @@
       <div class="detail-header">
         <h2>${escapeHtml(meta.title)}</h2>
         <div class="detail-meta">
-          <span><span class="label">Project:</span> ${escapeHtml(meta.projectDisplay || "-")}</span>
-          <span><span class="label">Branch:</span> ${escapeHtml(meta.gitBranch || "-")}</span>
-          <span><span class="label">Duration:</span> ${duration}</span>
-          <span><span class="label">Tokens:</span> ${tokenStr}</span>
-          <span><span class="label">Models:</span> ${escapeHtml((meta.models || []).join(", "))}</span>
+          <span><span class="label">프로젝트:</span> ${escapeHtml(meta.projectDisplay || "-")}</span>
+          <span><span class="label">브랜치:</span> ${escapeHtml(meta.gitBranch || "-")}</span>
+          <span><span class="label">소요시간:</span> ${duration}</span>
+          <span><span class="label">토큰:</span> ${tokenStr}</span>
+          <span><span class="label">모델:</span> ${escapeHtml((meta.models || []).join(", "))}</span>
         </div>
       </div>
       <div class="messages">
@@ -569,10 +568,12 @@
           })
         : "";
 
+      const roleLabel = ROLE_LABELS[msg.role] || msg.role;
+
       html += `
         <div class="message ${msg.role}">
           <div class="message-header">
-            <span class="role-badge ${msg.role}">${msg.role}</span>
+            <span class="role-badge ${msg.role}">${roleLabel}</span>
             <span class="message-time">${time}</span>
           </div>
       `;
@@ -602,8 +603,6 @@
 
     html += "</div>";
     mainEl.innerHTML = html;
-
-    // scroll to top
     mainEl.querySelector(".messages")?.scrollTo(0, 0);
   };
 
@@ -632,22 +631,17 @@
     if (!text) return "";
     let html = escapeHtml(text);
 
-    // [thinking] blocks → dimmed
     html = html.replace(
       /\[thinking\] ([\s\S]*?)(?=\n\[thinking\]|\n(?=[A-Z])|\n\n|$)/g,
       '<span style="color:var(--text-dim);font-style:italic">$1</span>'
     );
 
-    // Code blocks: ```lang\n...\n```
     html = html.replace(
       /```(\w*)\n([\s\S]*?)```/g,
       '<pre><code>$2</code></pre>'
     );
 
-    // Inline code
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-    // Bold
     html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
     return html;
@@ -661,15 +655,15 @@
 
   function formatDuration(ms) {
     const sec = Math.floor(ms / 1000);
-    if (sec < 60) return sec + "s";
+    if (sec < 60) return sec + "초";
     const min = Math.floor(sec / 60);
-    if (min < 60) return min + "m " + (sec % 60) + "s";
+    if (min < 60) return min + "분 " + (sec % 60) + "초";
     const hr = Math.floor(min / 60);
-    return hr + "h " + (min % 60) + "m";
+    return hr + "시간 " + (min % 60) + "분";
   }
 
   function formatToolInput(tool) {
-    if (!tool.input) return "(no input)";
+    if (!tool.input) return "(입력 없음)";
     try {
       return JSON.stringify(tool.input, null, 2);
     } catch {
@@ -680,7 +674,6 @@
   function toolSummary(tool) {
     const input = tool.input;
     if (!input) return "";
-    // 주요 도구별 요약
     if (tool.name === "Read" && input.file_path) return escapeHtml(input.file_path);
     if (tool.name === "Write" && input.file_path) return escapeHtml(input.file_path);
     if (tool.name === "Edit" && input.file_path) return escapeHtml(input.file_path);
@@ -710,12 +703,10 @@
 
   // ── Keyboard shortcuts ──
   document.addEventListener("keydown", (e) => {
-    // Ctrl/Cmd + K to focus search
     if ((e.ctrlKey || e.metaKey) && e.key === "k") {
       e.preventDefault();
       searchInput.focus();
     }
-    // Escape to clear search
     if (e.key === "Escape" && document.activeElement === searchInput) {
       searchInput.value = "";
       searchQuery = "";

@@ -201,6 +201,7 @@ my-claude-plugins/          git push          /plugin update
 
 | 날짜 | 버전 | 플러그인 | 변경 내용 |
 |------|------|----------|-----------|
+| 2026-02-22 | my-session-dashboard 1.1.0 | my-session-dashboard | feat: 시스템 태그 제거, NaN/빈 세션 필터링, self-contained HTML, 증분 빌드, 한국어 UI, 키워드 폴백, 필터 헤더 이동 |
 | 2026-02-22 | my-session-wrap 1.1.0 | my-session-wrap | feat: handoff 문서에 세션 ID 필수 기록 — SessionStart hook으로 $CLAUDE_SESSION_ID 자동 캡처 |
 | 2026-02-22 | my-session-dashboard 1.0.0 | my-session-dashboard | 신규: 세션 대시보드 플러그인 — JSONL 전처리 + 브라우저 뷰어, /ss 커맨드 |
 | 2026-02-21 | my-session-wrap 1.0.3 | my-session-wrap | fix: ensure-commands.js — 플러그인 원본 변경 시 커맨드 자동 갱신 (내용 비교 방식) |
