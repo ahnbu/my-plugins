@@ -24,13 +24,26 @@ my-claude-plugins/
 │       ├── my-session-wrap/
 │       ├── session-analyzer/
 │       └── history-insight/
-└── my-cowork/                    # 문서 공동 작성 스킬 (doc-coauthoring 포크)
+├── my-cowork/                    # 문서 공동 작성 스킬 (doc-coauthoring 포크)
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   ├── commands/
+│   │   └── cowork.md
+│   └── skills/
+│       └── cowork/
+│           └── SKILL.md
+└── my-session-dashboard/         # 세션 대시보드 (JSONL→JSON + 브라우저 뷰어)
     ├── .claude-plugin/
     │   └── plugin.json
+    ├── build.js
+    ├── index.html
     ├── commands/
-    │   └── cowork.md
+    │   └── ss.md
+    ├── hooks/
+    │   ├── hooks.json
+    │   └── ensure-commands.js
     └── skills/
-        └── cowork/
+        └── session-dashboard/
             └── SKILL.md
 ```
 
@@ -101,6 +114,26 @@ Step 5. 실행 (handoff 저장 / CLAUDE.md 업데이트 / git commit)
 
 ---
 
+## 플러그인: `my-session-dashboard`
+
+Claude Code 대화 세션을 시각적으로 탐색하는 대시보드. `/ss` 커맨드로 실행.
+
+### 기능
+
+- `~/.claude/projects/` 하위 JSONL 세션 파일 전처리 (키워드 추출, 토큰 통계)
+- GitHub 스타일 다크 테마 2-panel 대시보드 (세션 목록 + 대화 뷰어)
+- 프로젝트별 필터, 실시간 검색 (Ctrl+K), 도구 호출 접기/펼치기
+
+### 실행 방법
+
+```
+/ss
+```
+
+빌드 결과는 `~/.claude/session-dashboard/`에 출력됩니다.
+
+---
+
 ## 커맨드 자동 등록 동작 방식
 
 각 플러그인은 SessionStart 시 `hooks/ensure-commands.js`를 실행하여 커맨드 파일을 `~/.claude/commands/`에 자동 등록합니다.
@@ -120,21 +153,26 @@ Step 5. 실행 (handoff 저장 / CLAUDE.md 업데이트 / git commit)
 ## 업데이트 구조
 
 ```
-로컬 개발                       GitHub                     Claude Code 사용
-─────────────────────────────────────────────────────────────────────────
-my-claude-plugins/   git push   github repo   /plugin update
-(편집 작업 공간)        →              →               ↓
-                                       plugins/marketplaces/my-claude-plugins/
-                                       (Claude가 실제로 읽는 파일)
+이 레포 (개발 공간)                GitHub              Claude Code 런타임
+──────────────────────────────────────────────────────────────────────
+my-claude-plugins/          git push          /plugin update
+  .claude-plugin/              →                    →
+    marketplace.json                     ~/.claude/plugins/marketplaces/
+  my-session-wrap/                         my-claude-plugins/ (설치 결과)
+  my-cowork/
+  my-session-dashboard/
 ```
 
-**규칙:** `plugins/marketplaces/my-claude-plugins/`를 직접 수정하지 말 것.
-`/plugin update` 시 GitHub에서 덮어씌워짐.
+| 경로 | 역할 | 관리 방식 |
+|------|------|-----------|
+| 이 레포 (`my-claude-plugins/`) | 소스 코드 + `marketplace.json` (플러그인 목록) | 개발자가 직접 편집 |
+| `~/.claude/plugins/marketplaces/` | Claude Code가 실제로 로드하는 설치 경로 | `/plugin update`가 자동 생성. **직접 수정 금지** |
 
 ```bash
 # GitHub push 후 실행
 /plugin update my-session-wrap
 /plugin update my-cowork
+/plugin update my-session-dashboard
 ```
 
 ---
@@ -142,7 +180,7 @@ my-claude-plugins/   git push   github repo   /plugin update
 ## 관련 설정
 
 - **글로벌 CLAUDE.md**: `~/.claude/CLAUDE.md`
-- **커맨드**: `~/.claude/commands/wrap.md`, `~/.claude/commands/cowork.md`
+- **커맨드**: `~/.claude/commands/wrap.md`, `~/.claude/commands/cowork.md`, `~/.claude/commands/ss.md`
 
 ---
 
@@ -150,6 +188,7 @@ my-claude-plugins/   git push   github repo   /plugin update
 
 | 날짜 | 버전 | 플러그인 | 변경 내용 |
 |------|------|----------|-----------|
+| 2026-02-22 | my-session-dashboard 1.0.0 | my-session-dashboard | 신규: 세션 대시보드 플러그인 — JSONL 전처리 + 브라우저 뷰어, /ss 커맨드 |
 | 2026-02-21 | my-session-wrap 1.0.3 | my-session-wrap | fix: ensure-commands.js — 플러그인 원본 변경 시 커맨드 자동 갱신 (내용 비교 방식) |
 | 2026-02-21 | my-cowork 1.1.3 | my-cowork | feat: 플러그인 마커 기반 충돌 감지 — 내 파일은 자동 갱신, 타 플러그인 파일은 경고 후 스킵 |
 | 2026-02-21 | my-session-wrap 1.0.4 | my-session-wrap | feat: 플러그인 마커 기반 충돌 감지 — 내 파일은 자동 갱신, 타 플러그인 파일은 경고 후 스킵 |

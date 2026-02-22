@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 마켓플레이스 등록
 
-`.claude-plugin/marketplace.json`이 마스터 메타파일. 각 플러그인의 `source` (상대경로)와 `version`을 기록.
+이 레포의 `.claude-plugin/marketplace.json`이 마스터 메타파일. 개발자가 직접 편집하여 플러그인 목록(`source`, `version`)을 관리.
 
 ### 커맨드 자동 등록 (ensure-commands.js)
 
@@ -46,14 +46,23 @@ SessionStart 훅으로 매 세션 실행. 플러그인의 `commands/` 파일을 
 |----------|------|--------|
 | `my-session-wrap` | 세션 마무리 워크플로우 (5개 에이전트 병렬분석 → 검증 → handoff/CLAUDE.md/commit) | `/wrap` |
 | `my-cowork` | doc-coauthoring 포크 (AskUserQuestion 의무화) | `/cowork` |
+| `my-session-dashboard` | Claude Code 대화 세션 대시보드 (JSONL→JSON 전처리 + 브라우저 뷰어) | `/ss` |
 
 ## 배포 워크플로우
 
 ```
-로컬 수정 → git commit & push → /plugin update <플러그인명>
+이 레포 (개발 공간)                GitHub              Claude Code 런타임
+──────────────────────────────────────────────────────────────────────
+my-claude-plugins/          git push          /plugin update
+  .claude-plugin/              →                    →
+    marketplace.json                     ~/.claude/plugins/marketplaces/
+  my-session-wrap/                         my-claude-plugins/ (설치 결과)
+  my-cowork/
+  my-session-dashboard/
 ```
 
-`plugins/marketplaces/my-claude-plugins/` (Claude가 읽는 경로)를 직접 수정하지 말 것.
+- **이 레포**: 개발자가 직접 편집하는 소스. `marketplace.json` 포함.
+- **`~/.claude/plugins/marketplaces/`**: `/plugin update`가 자동 생성하는 설치 경로. Claude Code가 여기서 hooks/commands/skills를 로드. **직접 수정 금지** (다음 update 시 덮어씌워짐).
 
 ## Git Commit 규칙
 

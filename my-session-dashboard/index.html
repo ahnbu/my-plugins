@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Session Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-dim: #6e7681;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --user-bg: #1c2333;
+    --assistant-bg: #161b22;
+    --tool-bg: #1a1e2a;
+    --keyword-bg: #1f6feb33;
+    --keyword-text: #79c0ff;
+    --success: #3fb950;
+    --warning: #d29922;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Layout */
+  .app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .header .stats {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .search-box {
+    flex: 1;
+    max-width: 400px;
+    margin-left: auto;
+  }
+
+  .search-box input {
+    width: 100%;
+    padding: 6px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent);
+  }
+
+  .search-box input::placeholder {
+    color: var(--text-dim);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .filters {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+
+  .session-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .session-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .session-item:hover { background: var(--bg-tertiary); }
+  .session-item.active { background: var(--bg-tertiary); border-left: 3px solid var(--accent); }
+
+  .session-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    word-break: break-all;
+    line-height: 1.4;
+  }
+
+  .session-preview {
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+
+  .session-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .session-meta span {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .keyword-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    background: var(--keyword-bg);
+    color: var(--keyword-text);
+    border-radius: 3px;
+    font-size: 11px;
+  }
+
+  /* Main content */
+  .main {
+    overflow-y: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+    font-size: 14px;
+    gap: 8px;
+  }
+
+  .empty-state .icon { font-size: 48px; opacity: 0.3; }
+
+  /* Session detail header */
+  .detail-header {
+    padding: 16px 24px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detail-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    word-break: break-all;
+  }
+
+  .detail-meta {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .detail-meta .label { color: var(--text-dim); }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px;
+  }
+
+  .message {
+    margin-bottom: 16px;
+    max-width: 900px;
+  }
+
+  .message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .role-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .role-badge.user { background: #1f6feb44; color: var(--accent); }
+  .role-badge.assistant { background: #3fb95033; color: var(--success); }
+
+  .message-time {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .message-body {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .message.user .message-body {
+    background: var(--user-bg);
+    border: 1px solid #1f6feb44;
+  }
+
+  .message.assistant .message-body {
+    background: var(--assistant-bg);
+    border: 1px solid var(--border);
+  }
+
+  /* Tool use */
+  .tool-block {
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .tool-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--tool-bg);
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-muted);
+    user-select: none;
+  }
+
+  .tool-header:hover { background: var(--bg-tertiary); }
+
+  .tool-arrow {
+    transition: transform 0.2s;
+    font-size: 10px;
+  }
+
+  .tool-arrow.open { transform: rotate(90deg); }
+
+  .tool-name {
+    font-weight: 600;
+    color: var(--warning);
+  }
+
+  .tool-body {
+    display: none;
+    padding: 12px;
+    background: var(--bg);
+    font-size: 12px;
+    font-family: "SF Mono", "Fira Code", monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .tool-body.open { display: block; }
+
+  /* Markdown-like rendering */
+  .message-body code {
+    background: var(--bg-tertiary);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 13px;
+  }
+
+  .message-body pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+
+  .message-body pre code {
+    background: none;
+    padding: 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .app {
+      grid-template-columns: 1fr;
+    }
+    .sidebar {
+      max-height: 40vh;
+    }
+  }
+
+  .no-results {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Claude Sessions</h1>
+    <span class="stats" id="stats"></span>
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Search sessions... (title, keyword, message)">
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="filters" id="filters"></div>
+    <div class="session-list" id="sessionList">
+      <div class="loading">Loading sessions...</div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="empty-state">
+      <div class="icon">&#x1f4ac;</div>
+      <div>Select a session to view the conversation</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let sessions = [];
+  let activeSessionId = null;
+  let activeFilter = "all";
+  let searchQuery = "";
+
+  // ── Data Loading ──
+  async function loadSessions() {
+    try {
+      const resp = await fetch("sessions.json");
+      sessions = await resp.json();
+      renderStats();
+      buildFilters();
+      renderSessionList();
+    } catch (err) {
+      document.getElementById("sessionList").innerHTML =
+        '<div class="no-results">sessions.json not found. Run: /ss</div>';
+    }
+  }
+
+  async function loadConversation(sessionId) {
+    try {
+      const resp = await fetch(`sessions/${sessionId}.json`);
+      return await resp.json();
+    } catch {
+      return [];
+    }
+  }
+
+  // ── Stats ──
+  function renderStats() {
+    const totalTokens = sessions.reduce(
+      (sum, s) => sum + (s.totalInputTokens || 0) + (s.totalOutputTokens || 0), 0
+    );
+    const tokenStr = totalTokens > 1_000_000
+      ? (totalTokens / 1_000_000).toFixed(1) + "M"
+      : totalTokens > 1_000
+      ? (totalTokens / 1_000).toFixed(0) + "K"
+      : totalTokens;
+    document.getElementById("stats").textContent =
+      `${sessions.length} sessions | ${tokenStr} tokens`;
+  }
+
+  // ── Filters ──
+  function buildFilters() {
+    const projects = [...new Set(sessions.map((s) => s.projectDisplay))];
+    const container = document.getElementById("filters");
+
+    let html = '<button class="filter-btn active" data-filter="all">All</button>';
+    for (const p of projects) {
+      const short = p.split("/").pop() || p;
+      html += `<button class="filter-btn" data-filter="${escapeAttr(p)}">${escapeHtml(short)}</button>`;
+    }
+    container.innerHTML = html;
+
+    container.addEventListener("click", (e) => {
+      const btn = e.target.closest(".filter-btn");
+      if (!btn) return;
+      container.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeFilter = btn.dataset.filter;
+      renderSessionList();
+    });
+  }
+
+  // ── Session List ──
+  function getFilteredSessions() {
+    return sessions.filter((s) => {
+      if (activeFilter !== "all" && s.projectDisplay !== activeFilter) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const searchable = [
+          s.title,
+          s.firstMessage,
+          ...(s.keywords || []),
+          s.projectDisplay,
+          s.gitBranch,
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!searchable.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderSessionList() {
+    const filtered = getFilteredSessions();
+    const container = document.getElementById("sessionList");
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="no-results">No sessions found</div>';
+      return;
+    }
+
+    container.innerHTML = filtered
+      .map((s) => {
+        const isActive = s.sessionId === activeSessionId;
+        const date = new Date(s.timestamp);
+        const dateStr = date.toLocaleDateString("ko-KR", {
+          year: "numeric", month: "2-digit", day: "2-digit",
+        });
+        const timeStr = date.toLocaleTimeString("ko-KR", {
+          hour: "2-digit", minute: "2-digit", hour12: false,
+        });
+
+        return `
+          <div class="session-item${isActive ? " active" : ""}"
+               data-id="${s.sessionId}" onclick="selectSession('${s.sessionId}')">
+            <div class="session-title">${escapeHtml(s.title)}</div>
+            <div class="session-preview">${escapeHtml(s.firstMessage || "")}</div>
+            <div class="session-meta">
+              <span>${dateStr} ${timeStr}</span>
+              <span>${s.messageCount || 0} msgs</span>
+              <span>${s.toolUseCount || 0} tools</span>
+              ${(s.keywords || []).map((k) => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join("")}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  // ── Conversation View ──
+  window.selectSession = async function(sessionId) {
+    activeSessionId = sessionId;
+    renderSessionList();
+
+    const meta = sessions.find((s) => s.sessionId === sessionId);
+    if (!meta) return;
+
+    const mainEl = document.getElementById("main");
+    mainEl.innerHTML = '<div class="loading">Loading conversation...</div>';
+
+    const messages = await loadConversation(sessionId);
+
+    const duration = meta.lastTimestamp && meta.timestamp
+      ? formatDuration(new Date(meta.lastTimestamp) - new Date(meta.timestamp))
+      : "-";
+
+    const tokenStr = formatTokens(
+      (meta.totalInputTokens || 0) + (meta.totalOutputTokens || 0)
+    );
+
+    let html = `
+      <div class="detail-header">
+        <h2>${escapeHtml(meta.title)}</h2>
+        <div class="detail-meta">
+          <span><span class="label">Project:</span> ${escapeHtml(meta.projectDisplay || "-")}</span>
+          <span><span class="label">Branch:</span> ${escapeHtml(meta.gitBranch || "-")}</span>
+          <span><span class="label">Duration:</span> ${duration}</span>
+          <span><span class="label">Tokens:</span> ${tokenStr}</span>
+          <span><span class="label">Models:</span> ${escapeHtml((meta.models || []).join(", "))}</span>
+        </div>
+      </div>
+      <div class="messages">
+    `;
+
+    for (const msg of messages) {
+      const time = msg.timestamp
+        ? new Date(msg.timestamp).toLocaleTimeString("ko-KR", {
+            hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+          })
+        : "";
+
+      html += `
+        <div class="message ${msg.role}">
+          <div class="message-header">
+            <span class="role-badge ${msg.role}">${msg.role}</span>
+            <span class="message-time">${time}</span>
+          </div>
+      `;
+
+      if (msg.text) {
+        html += `<div class="message-body">${renderMarkdown(msg.text)}</div>`;
+      }
+
+      if (msg.tools && msg.tools.length > 0) {
+        for (const tool of msg.tools) {
+          const inputStr = formatToolInput(tool);
+          html += `
+            <div class="tool-block">
+              <div class="tool-header" onclick="toggleTool(this)">
+                <span class="tool-arrow">&#9654;</span>
+                <span class="tool-name">${escapeHtml(tool.name)}</span>
+                <span>${toolSummary(tool)}</span>
+              </div>
+              <div class="tool-body">${escapeHtml(inputStr)}</div>
+            </div>
+          `;
+        }
+      }
+
+      html += "</div>";
+    }
+
+    html += "</div>";
+    mainEl.innerHTML = html;
+
+    // scroll to top
+    mainEl.querySelector(".messages")?.scrollTo(0, 0);
+  };
+
+  window.toggleTool = function(el) {
+    const arrow = el.querySelector(".tool-arrow");
+    const body = el.nextElementSibling;
+    arrow.classList.toggle("open");
+    body.classList.toggle("open");
+  };
+
+  // ── Helpers ──
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/'/g, "&#39;");
+  }
+
+  function renderMarkdown(text) {
+    if (!text) return "";
+    let html = escapeHtml(text);
+
+    // [thinking] blocks → dimmed
+    html = html.replace(
+      /\[thinking\] ([\s\S]*?)(?=\n\[thinking\]|\n(?=[A-Z])|\n\n|$)/g,
+      '<span style="color:var(--text-dim);font-style:italic">$1</span>'
+    );
+
+    // Code blocks: ```lang\n...\n```
+    html = html.replace(
+      /```(\w*)\n([\s\S]*?)```/g,
+      '<pre><code>$2</code></pre>'
+    );
+
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+    return html;
+  }
+
+  function formatTokens(n) {
+    if (n > 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+    if (n > 1_000) return (n / 1_000).toFixed(1) + "K";
+    return String(n);
+  }
+
+  function formatDuration(ms) {
+    const sec = Math.floor(ms / 1000);
+    if (sec < 60) return sec + "s";
+    const min = Math.floor(sec / 60);
+    if (min < 60) return min + "m " + (sec % 60) + "s";
+    const hr = Math.floor(min / 60);
+    return hr + "h " + (min % 60) + "m";
+  }
+
+  function formatToolInput(tool) {
+    if (!tool.input) return "(no input)";
+    try {
+      return JSON.stringify(tool.input, null, 2);
+    } catch {
+      return String(tool.input);
+    }
+  }
+
+  function toolSummary(tool) {
+    const input = tool.input;
+    if (!input) return "";
+    // 주요 도구별 요약
+    if (tool.name === "Read" && input.file_path) return escapeHtml(input.file_path);
+    if (tool.name === "Write" && input.file_path) return escapeHtml(input.file_path);
+    if (tool.name === "Edit" && input.file_path) return escapeHtml(input.file_path);
+    if (tool.name === "Bash" && input.command) {
+      const cmd = input.command.length > 60
+        ? input.command.substring(0, 60) + "..."
+        : input.command;
+      return escapeHtml(cmd);
+    }
+    if (tool.name === "Glob" && input.pattern) return escapeHtml(input.pattern);
+    if (tool.name === "Grep" && input.pattern) return escapeHtml(input.pattern);
+    if (tool.name === "Task" && input.description) return escapeHtml(input.description);
+    if (tool.name === "WebFetch" && input.url) return escapeHtml(input.url);
+    return "";
+  }
+
+  // ── Search ──
+  const searchInput = document.getElementById("search");
+  let searchTimeout;
+  searchInput.addEventListener("input", (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchQuery = e.target.value.trim();
+      renderSessionList();
+    }, 200);
+  });
+
+  // ── Keyboard shortcuts ──
+  document.addEventListener("keydown", (e) => {
+    // Ctrl/Cmd + K to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      searchInput.focus();
+    }
+    // Escape to clear search
+    if (e.key === "Escape" && document.activeElement === searchInput) {
+      searchInput.value = "";
+      searchQuery = "";
+      renderSessionList();
+      searchInput.blur();
+    }
+  });
+
+  // ── Init ──
+  loadSessions();
+})();
+</script>
+</body>
+</html>
