@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.sh",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\"",
             "timeout": 3000
           }
         ]
