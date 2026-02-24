@@ -8,10 +8,11 @@
 
 INPUT=$(cat)
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 
-if [ -n "$SESSION_ID" ]; then
-  mkdir -p .claude
-  echo "$SESSION_ID" > .claude/.current-session-id
+if [ -n "$SESSION_ID" ] && [ -n "$CWD" ]; then
+  mkdir -p "$CWD/.claude"
+  echo "$SESSION_ID" > "$CWD/.claude/.current-session-id"
 fi
 
 exit 0
