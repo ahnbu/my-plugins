@@ -10,6 +10,15 @@
             "timeout": 3000
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\" SessionStart",
+            "timeout": 3000
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -17,7 +26,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\" UserPromptSubmit",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\" Stop",
             "timeout": 3000
           }
         ]
