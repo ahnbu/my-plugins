@@ -8,16 +8,12 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/ensure-commands.js\"",
             "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.sh\"",
-            "timeout": 3000
           }
         ]
-      },
+      }
+    ],
+    "UserPromptSubmit": [
       {
-        "matcher": "resume",
         "hooks": [
           {
             "type": "command",

@@ -130,15 +130,15 @@ AskUserQuestion(
 
 **[필수] 세션 ID 획득 (절대 생략 불가):**
 
-SessionStart hook(`capture-session-id.sh`)이 `$CLAUDE_SESSION_ID` 환경변수를 자동 설정한다.
+UserPromptSubmit hook(`capture-session-id.sh`)이 매 프롬프트 제출 시 `.claude/.current-session-id` 파일에 세션 ID를 자동 저장한다.
 
 ```bash
-echo "$CLAUDE_SESSION_ID"
+cat .claude/.current-session-id
 ```
 
-- 환경변수 값을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
+- 파일 내용을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
 - 이 세션 ID로 `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` 조회하여 검증 가능
-- 환경변수가 비어있으면 `세션 ID: (획득 실패)` 로 기재하고 사용자에게 안내
+- 파일이 없거나 비어있으면 `세션 ID: (획득 실패)` 로 기재하고 사용자에게 안내
 
 **[필수] 파일 생성 전 아래 스크립트를 반드시 실행한다 (절대 생략 불가):**
 
