@@ -40,6 +40,15 @@ SessionStart 훅으로 매 세션 실행. 플러그인의 `commands/` 파일을 
 **Agents**: `tools`, `model`, `color` 지정
 **Skills**: `description`은 한 줄 (멀티라인 불가)
 
+### Hook 작성 규칙
+
+- **hooks.json 이중 배열**: `"Event": [{ hooks: [{ type, command }] }]` — 내부 `hooks` 배열 누락 시 조용히 미실행
+- **Node.js만 사용**: Windows에서 cmd.exe가 shebang 미해석 → bash/python hook 불가
+- **이벤트명 PascalCase**: `SessionStart`, `UserPromptSubmit`, `Stop` 등. 대소문자 틀리면 무시
+- **stdin 방어 필수**: `if (!input) return` + `try-catch` (빈 stdin crash 방지)
+- **파일 저장은 stdin의 `cwd` 기준**: 글로벌 경로 사용 시 동시 세션 충돌
+- **timeout 명시**: 권장 3000ms. hook 실패가 세션을 차단하면 안 됨
+
 ## 현재 플러그인
 
 | 플러그인 | 설명 | 커맨드 |
