@@ -15,29 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\" SessionStart",
-            "timeout": 3000
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\" UserPromptSubmit",
-            "timeout": 3000
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\" Stop",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/capture-session-id.js\"",
             "timeout": 3000
           }
         ]
