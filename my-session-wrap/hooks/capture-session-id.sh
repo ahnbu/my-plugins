@@ -7,8 +7,14 @@
 # 참고: 공식 문서 - "All matching hooks run in parallel" (각 hook은 독립 프로세스, 독립 stdin)
 
 INPUT=$(cat)
+
+# DEBUG: stdin 덤프 (검증 후 제거)
+echo "$INPUT" > /c/Users/ahnbu/hook-debug-stdin.json
+
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
+
+echo "SESSION_ID=$SESSION_ID CWD=$CWD" > /c/Users/ahnbu/hook-debug-parsed.txt
 
 if [ -n "$SESSION_ID" ] && [ -n "$CWD" ]; then
   mkdir -p "$CWD/.claude"
