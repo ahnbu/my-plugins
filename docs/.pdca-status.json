@@ -1,9 +1,53 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-21T05:14:19.666Z",
-  "activeFeatures": [],
-  "primaryFeature": null,
-  "features": {},
+  "lastUpdated": "2026-02-24T08:30:58.432Z",
+  "activeFeatures": [
+    "scripts",
+    "my-session-dashboard",
+    "my-session-wrap"
+  ],
+  "primaryFeature": "scripts",
+  "features": {
+    "scripts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-22T01:21:35.257Z",
+        "lastUpdated": "2026-02-22T01:21:48.651Z"
+      },
+      "lastFile": "C:\\Users\\ahnbu\\.claude\\scripts\\statusline.ps1"
+    },
+    "my-session-dashboard": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-22T03:37:20.148Z",
+        "lastUpdated": "2026-02-22T03:37:20.148Z"
+      },
+      "lastFile": "C:\\Users\\ahnbu\\.claude\\my-claude-plugins\\my-session-dashboard\\hooks\\ensure-commands.js"
+    },
+    "my-session-wrap": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-22T06:10:51.482Z",
+        "lastUpdated": "2026-02-24T08:30:58.432Z"
+      },
+      "lastFile": "C:\\Users\\ahnbu\\.claude\\my-claude-plugins\\my-session-wrap\\hooks\\capture-session-id.sh"
+    }
+  },
   "pipeline": {
     "currentPhase": 1,
     "level": "Dynamic",
@@ -12,7 +56,50 @@
   "session": {
     "startedAt": "2026-02-21T05:14:19.666Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-21T05:14:19.666Z"
+    "lastActivity": "2026-02-24T08:30:58.432Z"
   },
-  "history": []
+  "history": [
+    {
+      "timestamp": "2026-02-22T01:21:35.257Z",
+      "feature": "scripts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T01:21:48.651Z",
+      "feature": "scripts",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T03:37:20.148Z",
+      "feature": "my-session-dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T06:10:51.482Z",
+      "feature": "my-session-wrap",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-22T07:02:22.393Z",
+      "feature": "my-session-wrap",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-24T08:12:37.214Z",
+      "feature": "my-session-wrap",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-24T08:30:58.432Z",
+      "feature": "my-session-wrap",
+      "phase": "do",
+      "action": "updated"
+    }
+  ]
 }
