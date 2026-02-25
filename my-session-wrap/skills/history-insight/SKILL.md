@@ -19,7 +19,7 @@ Claude Code 세션 히스토리를 분석하고 인사이트를 추출합니다.
 
 **Path Encoding:** `/Users/foo/project` → `-Users-foo-project`
 
-> 상세 파일 포맷: `${baseDir}/references/session-file-format.md`
+> 상세 파일 포맷: `references/session-file-format.md`
 
 ---
 
@@ -75,7 +75,7 @@ Session files found?
 
 직접 Read로 JSONL 파싱. 파일이 크면(≥5000 tokens) `extract-session.sh` 사용:
 ```bash
-${baseDir}/scripts/extract-session.sh <session.jsonl>
+scripts/extract-session.sh <session.jsonl>
 ```
 
 #### 4+ Files: Batch Extract Pipeline
@@ -139,5 +139,5 @@ ${baseDir}/scripts/extract-session.sh <session.jsonl>
 
 ## Related Resources
 
-- **`${baseDir}/scripts/extract-session.sh`** - JSONL 압축 (thinking, tool_use 제거)
-- **`${baseDir}/references/session-file-format.md`** - JSONL 구조 및 파싱
+- **`scripts/extract-session.sh`** - JSONL 압축 (thinking, tool_use 제거)
+- **`references/session-file-format.md`** - JSONL 구조 및 파싱

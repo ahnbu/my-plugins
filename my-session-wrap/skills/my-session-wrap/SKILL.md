@@ -32,22 +32,22 @@ git status --short 2>/dev/null && echo "GIT_AVAILABLE" || echo "NO_GIT"
 
 ### 2-1. 세션 ID 획득 (절대 생략 불가)
 
-SessionStart hook(`capture-session-id.js`)이 세션 시작 시 `$CLAUDE_SESSION_ID` 환경변수를 자동 설정한다.
+SessionStart hook(`capture-session-id.js`)이 세션 시작 시 `.claude/.current-session-id` 파일에 세션 ID를 기록한다.
 
 ```bash
-echo "$CLAUDE_SESSION_ID"
+cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 ```
 
-- 환경변수 값을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
+- 파일에서 읽은 값을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
 - 이 세션 ID로 `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` 조회하여 검증 가능
-- 환경변수가 비어있으면 `세션 ID: (획득 실패)` 로 기재하고 사용자에게 안내
+- 파일이 없거나 비어있으면 `세션 ID: (획득 실패)` 로 기재하고 사용자에게 안내
 
 ### 2-2. 파일 경로 생성 (절대 생략 불가)
 
 세션 작업 내용을 3-4단어로 요약한다 (예: `출력경로변경`, `세션ID-훅수정`).
 
 ```bash
-bash "${baseDir}/scripts/next-handoff.sh" "handoff" "<요약>"
+bash "scripts/next-handoff.sh" "handoff" "<요약>"
 ```
 
 - stdout으로 출력된 경로(예: `handoff/handoff_20260225_01_출력경로변경.md`)를 Write 도구의 대상으로 사용
