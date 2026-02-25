@@ -53,9 +53,10 @@ SessionStart 훅으로 매 세션 실행. 플러그인의 `commands/` 파일을 
 
 | 플러그인 | 설명 | 커맨드 |
 |----------|------|--------|
-| `my-session-wrap` | 세션 마무리 워크플로우 (5개 에이전트 병렬분석 → 검증 → handoff/CLAUDE.md/commit) | `/wrap` |
+| `my-session-wrap` | 세션 마무리 워크플로우 (handoff 저장 + git commit) | `/wrap` |
 | `my-cowork` | doc-coauthoring 포크 (AskUserQuestion 의무화) | `/cowork` |
 | `my-session-dashboard` | Claude Code 대화 세션 대시보드 (JSONL→JSON 전처리 + 브라우저 뷰어) | `/ss` |
+| `my-session-id` | 세션 ID 캡처 및 훅 이벤트별 비교 | - |
 
 ## 배포 워크플로우
 
