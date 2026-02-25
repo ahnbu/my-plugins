@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # next-handoff.sh — 다음 handoff 파일 경로를 생성하고 stdout으로 출력
-# Usage: bash next-handoff.sh [HANDOFF_DIR]
+# Usage: bash next-handoff.sh [HANDOFF_DIR] [요약]
 #   HANDOFF_DIR defaults to "handoff"
+#   요약: 세션 작업 한줄요약 (미제공 시 HHMM 사용)
 
 HANDOFF_DIR="${1:-handoff}"
+SUMMARY="${2:-}"
 DATE=$(date +%Y%m%d)
 mkdir -p "$HANDOFF_DIR"
 
-MAX_NN=0
-for f in "$HANDOFF_DIR"/handoff_*_${DATE}.md; do
-  [ -f "$f" ] || continue
-  NN=$(basename "$f" | sed 's/handoff_0*\([0-9]*\)_.*/\1/')
-  [ "${NN:-0}" -gt "$MAX_NN" ] && MAX_NN=$NN
-done
+if [ -n "$SUMMARY" ]; then
+  SUFFIX="$SUMMARY"
+else
+  SUFFIX=$(date +%H%M)
+fi
 
-NEXT_NN=$(printf "%02d" $((MAX_NN + 1)))
-NEW_FILE="$HANDOFF_DIR/handoff_${NEXT_NN}_${DATE}.md"
+NEW_FILE="$HANDOFF_DIR/handoff_${DATE}_${SUFFIX}.md"
 
 if [ -f "$NEW_FILE" ]; then
   echo "ERROR: $NEW_FILE already exists" >&2

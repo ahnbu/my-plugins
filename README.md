@@ -59,7 +59,7 @@ my-claude-plugins/
 
 ### 목적
 
-1. **컨텍스트 복원** — `handoff/handoff_NN_YYYYMMDD.md` 저장으로 다음 세션에서 즉시 재개
+1. **컨텍스트 복원** — `handoff/handoff_YYYYMMDD_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
 2. **시스템 개선** — CLAUDE.md 업데이트 + git commit으로 지식 반영
 
 ### 실행 방법
