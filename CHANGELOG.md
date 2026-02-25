@@ -1,25 +1,59 @@
 # Changelog
 
-| 날짜 | 버전 | 변경 내용 |
-|------|------|-----------|
-| 2026-02-25 | - | feat: pre-commit hook으로 marketplace/plugin 버전 동기화 검증 + 릴리스 워크플로우 문서화 |
-| 2026-02-25 | my-session-wrap 2.0.0 | feat: handoff 파일명에 당일 순번(NN) 자동 부여 (`handoff_YYYYMMDD_NN_한줄요약.md`) |
-| 2026-02-25 | my-session-wrap 2.0.0 | feat: handoff 파일명을 YYYYMMDD_한줄요약 형식으로 변경 (순번 로직 제거 → 요약 기반) |
-| 2026-02-25 | my-session-dashboard 1.1.0 | feat: plans 폴더 검색·조회 기능 추가 |
-| 2026-02-25 | my-session-dashboard 1.1.0 | feat: 빌드 출력 경로를 레포 최상위 output/으로 변경 |
-| 2026-02-24 | my-session-wrap 2.0.0 | fix: 디버그 코드 제거 → 프로덕션 전환 (SessionStart만 유지) |
-| 2026-02-24 | my-session-id 1.0.0 | feat: 세션 ID 캡처 및 훅 이벤트별 비교 플러그인 추가 |
-| 2026-02-24 | my-session-wrap 2.0.0 | fix: capture-session-id를 bash→Node.js로 전환 (Windows 호환) |
-| 2026-02-24 | my-session-wrap 2.0.0 | feat: UserPromptSubmit hook으로 세션 ID 파일 기반 캡처 |
-| 2026-02-22 | my-session-dashboard 1.1.0 | feat: 시스템 태그 제거, NaN/빈 세션 필터링, self-contained HTML, 증분 빌드, 한국어 UI, 키워드 폴백, 필터 헤더 이동 |
-| 2026-02-22 | my-session-wrap 1.1.0 | feat: handoff 문서에 세션 ID 필수 기록 — SessionStart hook으로 $CLAUDE_SESSION_ID 자동 캡처 |
-| 2026-02-22 | my-session-dashboard 1.0.0 | 신규: 세션 대시보드 플러그인 — JSONL 전처리 + 브라우저 뷰어, /ss 커맨드 |
-| 2026-02-21 | my-session-wrap 1.0.3 | fix: ensure-commands.js — 플러그인 원본 변경 시 커맨드 자동 갱신 (내용 비교 방식) |
-| 2026-02-21 | my-cowork 1.1.3 | feat: 플러그인 마커 기반 충돌 감지 — 내 파일은 자동 갱신, 타 플러그인 파일은 경고 후 스킵 |
-| 2026-02-21 | my-session-wrap 1.0.4 | feat: 플러그인 마커 기반 충돌 감지 — 내 파일은 자동 갱신, 타 플러그인 파일은 경고 후 스킵 |
-| 2026-02-21 | my-cowork 1.1.2 | fix: ensure-commands.js — 자동 갱신 방식으로 통일 (충돌 경고 제거) |
-| 2026-02-21 | my-cowork 1.1.1 | fix: hooks.json에서 once:true 제거 — 매 세션마다 커맨드 존재 여부 재확인 |
-| 2026-02-21 | my-session-wrap 1.0.2 | fix: hooks.json에서 once:true 제거 |
-| 2026-02-21 | my-cowork 1.1.0 | feat: SessionStart hook 추가 — /cowork 미등록 시 자동 등록, 충돌 시 경고 출력 |
-| 2026-02-21 | my-cowork 1.0.0 | 신규: doc-coauthoring 포크, AskUserQuestion 의무화 규칙 추가 |
-| 2026-02-21 | - | CLAUDE.md 추가: git commit 규칙 및 업데이트 워크플로우 문서화 |
+## 작성 규칙
+
+- **모든 커밋**을 기록 (타입으로 구분)
+- 최신 항목을 테이블 최상단에 추가
+- 버전 열: 플러그인 버전 변경이 있을 때만 기재, 없으면 `-`
+
+## 이력
+
+| 날짜 | 타입 | 버전 | 변경 내용 |
+|------|------|------|-----------|
+| 2026-02-25 | docs | - | CHANGELOG.md에서 중복 플러그인 열 제거 |
+| 2026-02-25 | docs | - | changelog을 CHANGELOG.md로 분리 + CLAUDE.md 규칙 업데이트 |
+| 2026-02-25 | docs | - | CLAUDE.md 플러그인 테이블 업데이트 |
+| 2026-02-25 | chore | - | handoff 파일명 규칙 통일 (handoff_YYYYMMDD_NN_요약) |
+| 2026-02-25 | feat | - | pre-commit hook으로 marketplace/plugin 버전 동기화 검증 + 릴리스 워크플로우 문서화 |
+| 2026-02-25 | feat | my-session-wrap 2.0.0 | handoff 파일명에 당일 순번(NN) 자동 부여 |
+| 2026-02-25 | docs | - | README에 플러그인 설치 범위 섹션 추가 + 세션 handoff |
+| 2026-02-25 | docs | - | v2.1.55 공식 수정 확인 및 workaround 환경변수 제거 반영 |
+| 2026-02-25 | docs | - | EEXIST GitHub 보고·플러그인 진단 세션 handoff 추가 |
+| 2026-02-25 | docs | - | 수동 git pull workaround 성공 확인 반영 |
+| 2026-02-25 | docs | - | EEXIST 진단문서에 플러그인 상태 진단·고아 캐시 정리 내역 추가 |
+| 2026-02-25 | docs | - | Bash EINVAL·EEXIST 버그 진단 handoff 문서 추가 |
+| 2026-02-25 | feat | my-session-wrap 2.0.0 | handoff 파일명을 YYYYMMDD_한줄요약 형식으로 변경 |
+| 2026-02-25 | feat | my-session-dashboard 1.1.0 | plans 폴더 검색·조회 기능 추가 |
+| 2026-02-25 | feat | my-session-dashboard 1.1.0 | 빌드 출력 경로를 레포 최상위 output/으로 변경 |
+| 2026-02-24 | docs | - | Hook 작성 규칙 CLAUDE.md에 추가 |
+| 2026-02-24 | docs | - | 리팩토링 기록·심층분석·세션ID 테스트 문서 정리 |
+| 2026-02-24 | docs | - | Hook 세팅 초보자 가이드 작성 |
+| 2026-02-24 | refactor | my-session-wrap 2.0.0 | 5개 분석 에이전트 제거, handoff+commit 경량 워크플로우로 전환 |
+| 2026-02-24 | fix | my-session-wrap 2.0.0 | 디버그 코드 제거 → 프로덕션 전환 (SessionStart만 유지) |
+| 2026-02-24 | feat | my-session-id 1.0.0 | 세션 ID 캡처 및 훅 이벤트별 비교 플러그인 추가 |
+| 2026-02-24 | fix | my-session-wrap 2.0.0 | 3개 이벤트 병렬 디버그 + stdout/파일 이중 출력 |
+| 2026-02-24 | fix | my-session-wrap 2.0.0 | capture-session-id를 bash→Node.js로 전환 (Windows 호환) |
+| 2026-02-24 | fix | my-session-wrap 2.0.0 | hook command에서 bash 접두사 제거 |
+| 2026-02-24 | fix | my-session-wrap 2.0.0 | capture-session-id.sh에서 stdin cwd 절대경로 사용 |
+| 2026-02-24 | chore | - | bkit 자동생성 파일 git 추적 제거 |
+| 2026-02-24 | docs | - | 세션 ID 테스트 기록 문서 추가 (1~4차) |
+| 2026-02-24 | feat | my-session-wrap 2.0.0 | UserPromptSubmit hook으로 세션 ID 파일 기반 캡처 |
+| 2026-02-22 | docs | - | ensure-commands 통합 계획 및 핸드오프 문서 추가 |
+| 2026-02-22 | feat | my-session-dashboard 1.1.0 | 시스템 태그 제거, NaN/빈 세션 필터링, self-contained HTML, 증분 빌드, 한국어 UI |
+| 2026-02-22 | docs | - | README 업데이트 — 세션 ID 캡처 기능 및 hooks 구조 추가 |
+| 2026-02-22 | feat | my-session-wrap 1.1.0 | handoff 문서에 세션 ID 필수 기록 기능 추가 |
+| 2026-02-22 | feat | my-session-dashboard 1.0.0 | 세션 대시보드 플러그인 신규 추가 |
+| 2026-02-22 | docs | - | CLAUDE.md — 아키텍처 섹션 추가 및 구조 개선 |
+| 2026-02-21 | docs | - | README.md — 커맨드 자동 등록 동작 방식 표 추가 |
+| 2026-02-21 | feat | my-cowork 1.1.3 | 플러그인 마커 기반 충돌 감지 — my-cowork, my-session-wrap 적용 |
+| 2026-02-21 | fix | my-cowork 1.1.2 | ensure-commands.js — 자동 갱신 방식으로 통일 |
+| 2026-02-21 | fix | my-session-wrap 1.0.3 | ensure-commands.js — 플러그인 원본 변경 시 커맨드 자동 갱신 |
+| 2026-02-21 | fix | my-cowork 1.1.1 | hooks.json에서 once:true 제거 — 매 세션마다 커맨드 재확인 |
+| 2026-02-21 | fix | my-session-wrap 1.0.2 | hooks.json에서 once:true 제거 |
+| 2026-02-21 | feat | my-cowork 1.1.0 | SessionStart hook 추가 — /cowork 커맨드 자동 등록 및 충돌 감지 |
+| 2026-02-21 | feat | my-cowork 1.0.0 | doc-coauthoring 포크 — AskUserQuestion 의무화 |
+| 2026-02-21 | feat | my-session-wrap 1.0.1 | SessionStart hook으로 커맨드 자동 등록 + handoff 스크립트 분리 |
+| 2026-02-21 | feat | - | marketplace.json 추가 (GitHub 마켓플레이스 전환) |
+| 2026-02-21 | chore | - | .gitignore 추가 및 docs 폴더 트래킹 |
+| 2026-02-21 | docs | - | README.md 추가 |
+| 2026-02-21 | - | - | Initial commit |

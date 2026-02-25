@@ -96,6 +96,6 @@ my-claude-plugins/          git push          /plugin update
 
 - 커밋 메시지는 한국어 (타입·플러그인명은 영어)
 - 한 커밋에 하나의 플러그인만 수정
-- 기능 변경 시 CHANGELOG.md도 함께 업데이트 (최신 항목을 테이블 최상단에 추가)
+- 모든 커밋을 CHANGELOG.md에 기록 (최신 항목을 테이블 최상단에 추가, 타입 열로 구분)
 - `plugin.json`의 `version`을 Semantic Versioning으로 관리
 - `marketplace.json`의 version과 `plugin.json`의 version을 반드시 일치시킬 것 (pre-commit hook이 검증)
