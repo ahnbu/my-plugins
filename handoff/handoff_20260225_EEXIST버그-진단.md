@@ -101,7 +101,7 @@ Node.js `fs.mkdir()`은 기본적으로 디렉토리가 이미 존재하면 `EEX
 | 4 | `known_marketplaces.json`에 수동 등록하면 `claude-plugins-official`이 Marketplaces 탭에 추가될 것 | `known_marketplaces.json`에 `claude-plugins-official` 엔트리 추가 (기존 항목 패턴 준수) | ✅ 성공 — Marketplaces 탭에 `claude-plugins-official` 표시 (56 available plugins, Browse plugins 접근 가능). 단, Discover 탭·기존 마켓플레이스는 수동 등록 이전에도 정상 동작하고 있었음 (수동 등록의 효과가 아님) |
 | 5 | 수동 등록 후 플러그인 설치가 정상 동작할 것 | UI에서 플러그인 선택 → Install | ⚠️ 간접 확인 — plugin-dev가 Installed plugins (1)로 표시. 직접 신규 설치 테스트는 미수행 |
 | 6 | Update marketplace는 여전히 EEXIST로 실패할 것 (등록과 새로고침은 별개 코드 경로) | `/plugin` > claude-plugins-official > Update marketplace 실행 | ✅ 확인 — `Failed to refresh marketplace 'claude-plugins-official': EEXIST: file already exists, mkdir 'C:\Users\ahnbu\.claude\plugins'`. 세션 시작 autoUpdate도 동일 실패 (`Failed to install Anthropic marketplace · Will retry on next startup`) |
-| 7 | 수동 `git pull`로 마켓플레이스 업데이트를 대체할 수 있을 것 | `cd ~/.claude/plugins/marketplaces/claude-plugins-official && git pull` | 🔲 미실행 |
+| 7 | 수동 `git pull`로 마켓플레이스 업데이트를 대체할 수 있을 것 | `cd ~/.claude/plugins/marketplaces/claude-plugins-official && git pull` | ✅ 성공 — 정상 동작. my-claude-plugins도 동일하게 성공. Update marketplace의 대체 수단으로 사용 가능 |
 | 8 | `autoUpdate: false`로 변경하면 세션 시작 시 에러 메시지가 사라질 것 | `known_marketplaces.json`에서 `claude-plugins-official`의 `autoUpdate`를 `false`로 변경 | ❌ 실패 — 에러 메시지 동일 지속. autoUpdate는 refresh만 제어하며, 내부 설치 검증은 별도 경로로 실행되는 것으로 추정 |
 | 9 | Google Drive 동기화가 `~/.claude` 폴더 파일 잠금(lock)을 유발하여 EEXIST 발생 | Google Drive 완전 종료 후 새 세션 시작 | ❌ 실패 — 에러 메시지 동일 지속. Drive 동기화는 원인이 아님 |
 | 10 | EEXIST가 모든 마켓플레이스의 Update marketplace에서 공통 발생할 것 | `/plugin` > my-claude-plugins > Update marketplace 실행 | ✅ 확인 — `EEXIST: mkdir 'C:\Users\ahnbu\.claude\plugins'`. claude-plugins-official뿐 아니라 my-claude-plugins에서도 동일 에러 |
@@ -288,5 +288,5 @@ Manual clone + edit `known_marketplaces.json`:
 - [x] Bash EINVAL: `CLAUDE_CODE_GIT_BASH_PATH` 환경변수로 해결
 - [x] GitHub #28348: workaround 코멘트 완료 ([link](https://github.com/anthropics/claude-code/issues/28348#issuecomment-3956510794))
 - [x] EEXIST 버그: GitHub #27791에 코멘트로 보고 완료 ([link](https://github.com/anthropics/claude-code/issues/27791#issuecomment-3956538753))
-- [ ] 수동 git pull workaround 테스트
-- [ ] Marketplace 에러 메시지 해결
+- [x] 수동 git pull workaround 테스트 — 정상 동작 확인
+- [ ] Marketplace 에러 메시지 해결 — Claude Code 측 EEXIST 수정 대기
