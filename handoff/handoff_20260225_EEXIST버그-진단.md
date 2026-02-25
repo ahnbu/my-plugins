@@ -104,6 +104,37 @@ Node.js `fs.mkdir()`은 기본적으로 디렉토리가 이미 존재하면 `EEX
 | 7 | 수동 `git pull`로 마켓플레이스 업데이트를 대체할 수 있을 것 | `cd ~/.claude/plugins/marketplaces/claude-plugins-official && git pull` | 🔲 미실행 |
 | 8 | `autoUpdate: false`로 변경하면 세션 시작 시 에러 메시지가 사라질 것 | `known_marketplaces.json`에서 `claude-plugins-official`의 `autoUpdate`를 `false`로 변경 | ❌ 실패 — 에러 메시지 동일 지속. autoUpdate는 refresh만 제어하며, 내부 설치 검증은 별도 경로로 실행되는 것으로 추정 |
 | 9 | Google Drive 동기화가 `~/.claude` 폴더 파일 잠금(lock)을 유발하여 EEXIST 발생 | Google Drive 완전 종료 후 새 세션 시작 | ❌ 실패 — 에러 메시지 동일 지속. Drive 동기화는 원인이 아님 |
+| 10 | EEXIST가 모든 마켓플레이스의 Update marketplace에서 공통 발생할 것 | `/plugin` > my-claude-plugins > Update marketplace 실행 | ✅ 확인 — `EEXIST: mkdir 'C:\Users\ahnbu\.claude\plugins'`. claude-plugins-official뿐 아니라 my-claude-plugins에서도 동일 에러 |
+| 11 | `/plugin` UI에서 claude-plugins-official 플러그인 설치가 가능할 것 | Browse plugins > frontend-design > Install 시도 | ❌ 실패 — EEXIST 에러 없이 조용히 실패. Discover 메뉴에서도 동일 |
+| 12 | 플러그인 설치 상태 자체에 문제가 있어 EEXIST를 유발하는 것은 아닌지 | 전체 플러그인 진단 수행 (아래 섹션 4-3 참조) | ❌ 배제 — 설치된 7개 플러그인 모두 정상. 고아 캐시 6개 정리 완료 |
+
+### 4-3. 플러그인 설치 상태 진단 (2026-02-25)
+
+EEXIST 원인이 플러그인 설치 상태에 있는 것은 아닌지 확인하기 위해 전체 진단 수행.
+
+**설치된 플러그인 (7개) — 모두 정상**
+
+| 플러그인 | 버전 | plugin.json | skills | hooks | commands | 상태 |
+|----------|------|-------------|--------|-------|----------|------|
+| bkit@bkit-marketplace | 1.5.5 | Y | 27 | Y | Y | OK |
+| agent-council@team-attention | 1.0.0 | Y | 1 | N | N | OK |
+| clarify@team-attention | 2.0.0 | Y | 3 | N | N | OK |
+| document-skills@anthropic-agent-skills | 1ed29a03 | N* | 4 | N | N | OK |
+| example-skills@anthropic-agent-skills | 1ed29a03 | N* | 12 | N | N | OK |
+| my-session-wrap@my-claude-plugins | 2.0.0 | Y | 3 | Y | Y | OK |
+| plugin-dev@claude-plugins-official | 99e11d95 | N* | 7 | N | Y | OK |
+
+\* Anthropic/공식 플러그인은 plugin.json 없이 skills/ 폴더를 직접 노출하는 구조 (정상)
+
+**정리된 고아 캐시 (6개)** — installed_plugins.json에 없으나 캐시에 잔존하던 항목 삭제 완료:
+- `my-cowork@my-claude-plugins` (v1.0.0, v1.1.3)
+- `my-session-dashboard@my-claude-plugins` (v1.0.0, v1.1.0)
+- `my-session-id@my-claude-plugins` (v1.0.0)
+- `my-session-wrap@my-local-plugins` (v1.0.0) — 마켓 이동 전 잔재
+- `session-wrap@team-attention` (v1.0.0) — my-session-wrap로 대체
+- `youtube-digest@team-attention` (v0.2.0)
+
+**결론**: 플러그인 설치 상태는 EEXIST 원인과 무관. 버그는 Claude Code 내부 `fs.mkdir()` 호출의 `{ recursive: true }` 누락에 기인.
 
 ---
 
