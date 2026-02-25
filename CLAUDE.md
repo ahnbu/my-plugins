@@ -74,6 +74,30 @@ my-claude-plugins/          git push          /plugin update
 - **이 레포**: 개발자가 직접 편집하는 소스. `marketplace.json` 포함.
 - **`~/.claude/plugins/marketplaces/`**: `/plugin update`가 자동 생성하는 설치 경로. Claude Code가 여기서 hooks/commands/skills를 로드. **직접 수정 금지** (다음 update 시 덮어씌워짐).
 
+### 수동 캐시 동기화 (EEXIST 버그 해결 전까지 임시)
+
+> **임시 절차**: `/plugin update`의 EEXIST 버그(#27791) 해결 시 이 섹션 삭제.
+
+`/plugin update`가 실패하므로, 플러그인 변경 후 반드시 아래 절차로 캐시를 동기화:
+
+```bash
+# 1. 개발 레포에서 push
+git push
+
+# 2. 마켓플레이스 디렉토리에서 pull
+cd ~/.claude/plugins/marketplaces/my-claude-plugins && git pull
+
+# 3. 캐시에 복사 (버전 디렉토리 없으면 mkdir -p로 생성)
+cp -r ~/.claude/plugins/marketplaces/my-claude-plugins/<plugin-name>/* \
+      ~/.claude/plugins/cache/my-claude-plugins/<plugin-name>/<version>/
+
+# 4. installed_plugins.json의 version, installPath 업데이트
+# 5. diff로 검증
+diff -r <개발레포>/<plugin-name>/ ~/.claude/plugins/cache/.../<version>/
+```
+
+**새 세션 필요**: 캐시 동기화 후 hooks/skills 반영은 새 세션에서만 적용.
+
 ## Git Commit 규칙
 
 ### 형식
