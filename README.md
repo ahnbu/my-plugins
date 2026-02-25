@@ -163,6 +163,20 @@ Claude Code 대화 세션을 시각적으로 탐색하는 대시보드. `/ss` �
 
 ---
 
+## 설치 범위
+
+플러그인 설치 시 레포 전체가 아닌 **각 플러그인 디렉토리만** 사용자 캐시에 복사됩니다.
+
+| 경로 | 설치 포함 | 설명 |
+|------|-----------|------|
+| `my-session-wrap/`, `my-cowork/` 등 | O | `marketplace.json`의 `source` 필드가 가리키는 디렉토리 |
+| `handoff/`, `docs/`, `temp/` | X | 개발용 문서. 플러그인 설치에 미포함 |
+| `CLAUDE.md`, `README.md`, `.gitignore` | X | 레포 관리 파일. 설치에 미포함 |
+
+`marketplace.json`의 `source` 필드(예: `"./my-session-wrap"`)가 설치 범위를 결정합니다.
+
+---
+
 ## 업데이트 구조
 
 ```
