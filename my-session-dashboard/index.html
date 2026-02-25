@@ -397,6 +397,16 @@
   .type-badge.plan { background: var(--plan-bg); color: var(--plan-accent); }
   .type-badge.completed { background: var(--bg-tertiary); color: var(--text-dim); }
 
+  .type-filters {
+    display: flex;
+    gap: 4px;
+  }
+
+  .type-filters .filter-btn {
+    font-size: 14px;
+    padding: 6px 16px;
+  }
+
   .filter-separator {
     width: 1px;
     background: var(--border);
@@ -435,6 +445,7 @@
 <div class="app">
   <div class="header">
     <h1>Claude 세션</h1>
+    <div class="type-filters" id="typeFilters"></div>
     <span class="stats" id="stats"></span>
     <div class="search-box">
       <input type="text" id="search" placeholder="세션 검색... (제목, 키워드, 내용)">
@@ -508,42 +519,47 @@
   function buildFilters() {
     const projects = [...new Set(sessions.filter((s) => s.type !== "plan").map((s) => s.projectDisplay))];
     const hasPlan = sessions.some((s) => s.type === "plan");
-    const container = document.getElementById("filters");
 
-    // 타입 필터
-    let html = '<button class="filter-btn active" data-type-filter="all">전체</button>';
-    html += '<button class="filter-btn" data-type-filter="session">세션</button>';
+    // 타입 필터 → 헤더에 렌더
+    const typeContainer = document.getElementById("typeFilters");
+    let typeHtml = '<button class="filter-btn active" data-type-filter="all">전체</button>';
+    typeHtml += '<button class="filter-btn" data-type-filter="session">세션</button>';
     if (hasPlan) {
-      html += '<button class="filter-btn" data-type-filter="plan">플랜</button>';
+      typeHtml += '<button class="filter-btn" data-type-filter="plan">플랜</button>';
     }
+    typeContainer.innerHTML = typeHtml;
 
-    // 구분선 + 프로젝트 필터
-    if (projects.length > 1) {
-      html += '<span class="filter-separator"></span>';
-      for (const p of projects) {
-        const short = p.split(/[/\\]/).pop() || p;
-        html += `<button class="filter-btn" data-filter="${escapeAttr(p)}">${escapeHtml(short)}</button>`;
-      }
-    }
-    container.innerHTML = html;
-
-    container.addEventListener("click", (e) => {
+    typeContainer.addEventListener("click", (e) => {
       const btn = e.target.closest(".filter-btn");
       if (!btn) return;
-
-      if (btn.dataset.typeFilter !== undefined) {
-        // 타입 필터 클릭
-        container.querySelectorAll("[data-type-filter]").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        activeTypeFilter = btn.dataset.typeFilter;
-      } else if (btn.dataset.filter !== undefined) {
-        // 프로젝트 필터 클릭
-        container.querySelectorAll("[data-filter]").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        activeFilter = btn.dataset.filter;
-      }
+      typeContainer.querySelectorAll("[data-type-filter]").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeTypeFilter = btn.dataset.typeFilter;
       renderSessionList();
     });
+
+    // 프로젝트 필터 → filters 행에 렌더
+    const projContainer = document.getElementById("filters");
+    if (projects.length > 1) {
+      let projHtml = "";
+      for (const p of projects) {
+        const short = p.split(/[/\\]/).pop() || p;
+        projHtml += `<button class="filter-btn" data-filter="${escapeAttr(p)}">${escapeHtml(short)}</button>`;
+      }
+      projContainer.innerHTML = projHtml;
+      projContainer.style.display = "";
+
+      projContainer.addEventListener("click", (e) => {
+        const btn = e.target.closest(".filter-btn");
+        if (!btn) return;
+        projContainer.querySelectorAll("[data-filter]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeFilter = btn.dataset.filter;
+        renderSessionList();
+      });
+    } else {
+      projContainer.style.display = "none";
+    }
   }
 
   // ── Session List ──
