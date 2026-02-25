@@ -240,7 +240,7 @@ my-claude-plugins/          git push          /plugin update
 1. 플러그인 코드 수정
 2. `<plugin>/.claude-plugin/plugin.json`의 `version` 올림 (semver)
 3. `.claude-plugin/marketplace.json`의 해당 플러그인 `version` 동일하게 올림
-4. `README.md` Changelog에 항목 추가 (최신을 최상단에)
+4. `CHANGELOG.md`에 항목 추가 (최신을 최상단에)
 5. `git commit` — pre-commit hook이 버전 일치 자동 검증
 6. `git push`
 7. Claude Code에서 `/plugin update <plugin-name>` 실행
