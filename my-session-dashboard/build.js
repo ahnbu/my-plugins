@@ -556,7 +556,11 @@ function main() {
 window.__SESSIONS_META__ = ${metaJson};
 window.__SESSIONS_DATA__ = ${dataJson};
 </script>`;
-  html = html.replace("<!-- __SESSION_DATA__ -->", dataScript);
+  // String.replace()는 replacement의 $'/$`/$& 등을 특수 해석하므로
+  // 세션 데이터에 $ 포함 시 HTML이 손상됨 → indexOf + substring 사용
+  const placeholder = "<!-- __SESSION_DATA__ -->";
+  const phIdx = html.indexOf(placeholder);
+  html = html.substring(0, phIdx) + dataScript + html.substring(phIdx + placeholder.length);
   fs.writeFileSync(htmlDest, html);
 
   // 캐시 저장
