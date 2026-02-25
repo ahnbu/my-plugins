@@ -1,7 +1,7 @@
 # Bash 도구 EINVAL 에러 진단
 
 **날짜**: 2026-02-25
-**상태**: ✅ 해결 — `CLAUDE_CODE_GIT_BASH_PATH` 환경변수 설정으로 해결
+**상태**: ✅ 완전 해결 — v2.1.55 공식 수정 확인, workaround 환경변수 제거 완료
 
 ## 배경
 
@@ -65,15 +65,15 @@ Node.js `fs.open()`이 MSYS 환경에서 Windows temp 경로의 `.output` 파일
 
 ## 해결
 
-**Workaround 1 적용 성공** (2026-02-25):
+### Workaround 적용 (2026-02-25)
 
-```powershell
-# 세션 임시 설정으로 테스트 — 성공 확인
-$env:CLAUDE_CODE_GIT_BASH_PATH = "C:\Program Files\git\bin\bash.exe"
+`CLAUDE_CODE_GIT_BASH_PATH=C:\Program Files\git\bin\bash.exe` 환경변수 설정으로 임시 해결.
 
-# 영구 설정 (사용자 환경변수)
-[Environment]::SetEnvironmentVariable("CLAUDE_CODE_GIT_BASH_PATH", "C:\Program Files\git\bin\bash.exe", "User")
-```
+### 공식 수정 확인 (2026-02-25)
 
-- `echo hello` 정상 실행 확인 (EINVAL 없음)
-- 근본 원인: Claude Code가 MSYS bash를 자동 감지할 때 경로 처리 오류. Git Bash 경로를 명시적으로 지정하면 해결됨.
+- **v2.1.55**에서 Anthropic이 공식 수정 ([#28348 코멘트](https://github.com/anthropics/claude-code/issues/28348#issuecomment-3956537387))
+- 근본 원인: v2.1.53 회귀 버그. Windows 전체에 영향 (비ASCII 사용자명과 무관)
+- workaround 환경변수 제거 후 검증:
+  - `echo "EINVAL test ok"` → 정상 출력
+  - `git status` → 정상 출력
+- **결론**: v2.1.55 이상에서는 `CLAUDE_CODE_GIT_BASH_PATH` 환경변수 불필요. 제거 완료.
