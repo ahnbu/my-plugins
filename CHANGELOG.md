@@ -10,6 +10,13 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-02-26 | chore | - | /ss-new 임시 커맨드 생성 — 개발 레포 build.js 직접 실행 (marketplace 동기화 전 우회용) |
+| 2026-02-26 | feat | my-session-wrap 2.2.0 | /continue 커맨드 신규 생성 — 최신 handoff 자동 검색·요약·재개 |
+| 2026-02-26 | feat | - | SessionStart hook check-handoff.js — 24시간 이내 handoff 감지 시 /continue 안내 |
+| 2026-02-26 | feat | - | /wrap Step 4 추가 — 재개 프롬프트 출력 + 규칙 후보 확인 |
+| 2026-02-26 | feat | - | handoff 템플릿에 §6 환경 스냅샷 섹션 추가 |
+| 2026-02-26 | docs | - | 글로벌 CLAUDE.md에 handoff 재개 프로토콜 추가 |
+| 2026-02-26 | feat | - | /wrap 피드백 루프에 [규칙 후보] 마킹 로직 추가 |
 | 2026-02-26 | fix | - | build.js의 String.replace() $특수문자 해석으로 인한 HTML 손상 수정 |
 | 2026-02-26 | feat | - | 타입 필터(전체/세션/플랜)를 헤더로 이동하여 1차 네비게이션 강화 |
 | 2026-02-25 | feat | my-session-wrap 2.1.0 | /cp (commit-push) 및 /save (응답 저장) 경량 커맨드 추가 |
