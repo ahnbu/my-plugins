@@ -33,5 +33,4 @@ if [ -f "$NEW_FILE" ]; then
   exit 1
 fi
 
-touch "$NEW_FILE"
 echo "$NEW_FILE"
