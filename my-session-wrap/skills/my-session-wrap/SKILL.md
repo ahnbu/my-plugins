@@ -7,7 +7,7 @@ description: "Session wrap-up: saves a structured handoff document and creates a
 
 세션 마무리 시 실행하는 경량 워크플로우.
 
-1. **컨텍스트 복원** — `handoff/handoff_YYYYMMDD_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
+1. **컨텍스트 복원** — `handoff/handoff_YYYYMMDD_01_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
 2. **변경사항 반영** — (git 있을 시) commit으로 작업 이력 기록
 
 ## 실행 흐름
@@ -50,7 +50,7 @@ echo "$CLAUDE_SESSION_ID"
 bash "${baseDir}/scripts/next-handoff.sh" "handoff" "<요약>"
 ```
 
-- stdout으로 출력된 경로(예: `handoff/handoff_20260225_출력경로변경.md`)를 Write 도구의 대상으로 사용
+- stdout으로 출력된 경로(예: `handoff/handoff_20260225_01_출력경로변경.md`)를 Write 도구의 대상으로 사용
 - **스크립트 실패(exit 1) 시**: 사용자에게 오류 보고 후 중단. 직접 파일명을 결정하거나 기존 파일에 쓰는 것은 절대 금지
 
 ### 2-3. handoff 파일 작성

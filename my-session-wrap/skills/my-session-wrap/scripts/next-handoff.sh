@@ -15,7 +15,18 @@ else
   SUFFIX=$(date +%H%M)
 fi
 
-NEW_FILE="$HANDOFF_DIR/handoff_${DATE}_${SUFFIX}.md"
+# 순번 계산: 당일 handoff 파일에서 최대 번호 + 1
+MAX_SEQ=0
+for f in "$HANDOFF_DIR"/handoff_${DATE}_[0-9][0-9]_*.md; do
+  [ -f "$f" ] || continue
+  base=$(basename "$f")
+  seq=$(echo "$base" | sed 's/^handoff_[0-9]\{8\}_\([0-9]\{2\}\)_.*/\1/')
+  seq=$((10#$seq))  # 08,09 등 octal 방지
+  [ "$seq" -gt "$MAX_SEQ" ] && MAX_SEQ=$seq
+done
+SEQ=$(printf "%02d" $((MAX_SEQ + 1)))
+
+NEW_FILE="$HANDOFF_DIR/handoff_${DATE}_${SEQ}_${SUFFIX}.md"
 
 if [ -f "$NEW_FILE" ]; then
   echo "ERROR: $NEW_FILE already exists" >&2
