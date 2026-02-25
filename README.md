@@ -9,45 +9,60 @@ my-claude-plugins/
 ├── CLAUDE.md                     # 개발 가이드 및 git commit 규칙
 ├── .claude-plugin/
 │   └── marketplace.json          # 마켓플레이스 등록 정보
-├── my-session-wrap/              # 세션 마무리 통합 워크플로우 플러그인
+├── my-session-wrap/              # 세션 마무리 워크플로우 (handoff + git commit)
 │   ├── .claude-plugin/
 │   │   └── plugin.json
-│   ├── agents/
-│   │   ├── automation-scout.md
-│   │   ├── doc-updater.md
-│   │   ├── duplicate-checker.md
-│   │   ├── followup-suggester.md
-│   │   └── learning-extractor.md
 │   ├── commands/
 │   │   └── wrap.md
 │   ├── hooks/
 │   │   ├── hooks.json
 │   │   ├── ensure-commands.js
-│   │   └── capture-session-id.sh
+│   │   └── capture-session-id.js
 │   └── skills/
 │       ├── my-session-wrap/
+│       │   ├── SKILL.md
+│       │   ├── references/template.md
+│       │   └── scripts/next-handoff.sh
 │       ├── session-analyzer/
+│       │   ├── SKILL.md
+│       │   ├── references/
+│       │   └── scripts/
 │       └── history-insight/
+│           ├── SKILL.md
+│           ├── references/
+│           └── scripts/
 ├── my-cowork/                    # 문서 공동 작성 스킬 (doc-coauthoring 포크)
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── commands/
 │   │   └── cowork.md
+│   ├── hooks/
+│   │   ├── hooks.json
+│   │   └── ensure-commands.js
 │   └── skills/
 │       └── cowork/
 │           └── SKILL.md
-└── my-session-dashboard/         # 세션 대시보드 (JSONL→JSON + 브라우저 뷰어)
+├── my-session-dashboard/         # 세션 대시보드 (JSONL→JSON + 브라우저 뷰어)
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   ├── build.js                  # JSONL 전처리 + HTML 생성
+│   ├── index.html                # self-contained 대시보드 템플릿
+│   ├── commands/
+│   │   └── ss.md
+│   ├── hooks/
+│   │   ├── hooks.json
+│   │   └── ensure-commands.js
+│   └── skills/
+│       └── session-dashboard/
+│           └── SKILL.md
+└── my-session-id/                # 세션 ID 캡처 및 훅 이벤트별 비교
     ├── .claude-plugin/
     │   └── plugin.json
-    ├── build.js
-    ├── index.html
-    ├── commands/
-    │   └── ss.md
     ├── hooks/
     │   ├── hooks.json
-    │   └── ensure-commands.js
+    │   └── capture-session-id.js
     └── skills/
-        └── session-dashboard/
+        └── session-id/
             └── SKILL.md
 ```
 
@@ -55,12 +70,12 @@ my-claude-plugins/
 
 ## 플러그인: `my-session-wrap`
 
-세션 마무리 시 실행하는 통합 워크플로우. `/wrap` 커맨드로 실행.
+세션 마무리 시 실행하는 경량 워크플로우. `/wrap` 커맨드로 실행.
 
 ### 목적
 
-1. **컨텍스트 복원** — `handoff/handoff_YYYYMMDD_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
-2. **시스템 개선** — CLAUDE.md 업데이트 + git commit으로 지식 반영
+1. **컨텍스트 복원** — `handoff/handoff_YYYYMMDD_NN_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
+2. **변경사항 반영** — (git 있을 시) commit으로 작업 이력 기록
 
 ### 실행 방법
 
@@ -73,26 +88,14 @@ my-claude-plugins/
 
 ```
 Step 1. Git 감지
-Step 2. 4개 에이전트 병렬 분석
-Step 3. duplicate-checker 검증
-Step 4. 결과 통합 + 액션 선택
-Step 5. 실행 (handoff 저장 / CLAUDE.md 업데이트 / git commit)
+Step 2. handoff 파일 생성 (세션 ID 획득 → 파일 경로 생성 → 작성)
+Step 3. git commit (선택)
 ```
-
-### 포함된 에이전트
-
-| 에이전트 | 역할 |
-|---------|------|
-| `doc-updater` | CLAUDE.md/context.md 업데이트 필요 항목 분석 |
-| `automation-scout` | 반복 패턴 → skill/command/agent 자동화 기회 감지 |
-| `learning-extractor` | 레슨·실수·발견 추출 (TIL 형식) |
-| `followup-suggester` | 미완료 작업·다음 세션 우선순위 제안 |
-| `duplicate-checker` | 기존 CLAUDE.md·handoff 파일과 중복 검증 |
 
 ### 세션 ID 자동 캡처
 
-SessionStart hook(`capture-session-id.sh`)이 stdin에서 `session_id`를 읽어 `CLAUDE_ENV_FILE`에 export한다.
-이후 모든 Bash 명령에서 `$CLAUDE_SESSION_ID`로 현재 세션 ID에 접근 가능.
+SessionStart hook(`capture-session-id.js`)이 stdin에서 `session_id`를 읽어 프로젝트의 `.claude/.current-session-id`에 저장한다.
+이후 `$CLAUDE_SESSION_ID` 환경변수로 현재 세션 ID에 접근 가능.
 
 - **handoff 문서**: 헤더에 `세션 ID:` 필드로 자동 기입
 - **세션 검증**: `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` 조회로 사후 검증 가능
@@ -134,8 +137,10 @@ Claude Code 대화 세션을 시각적으로 탐색하는 대시보드. `/ss` �
 ### 기능
 
 - `~/.claude/projects/` 하위 JSONL 세션 파일 전처리 (키워드 추출, 토큰 통계)
+- `~/.claude/plans/` 하위 플랜 파일 검색·조회
 - GitHub 스타일 다크 테마 2-panel 대시보드 (세션 목록 + 대화 뷰어)
 - 프로젝트별 필터, 실시간 검색 (Ctrl+K), 도구 호출 접기/펼치기
+- 증분 빌드 (`.build-cache.json` 사용)
 
 ### 실행 방법
 
@@ -143,7 +148,27 @@ Claude Code 대화 세션을 시각적으로 탐색하는 대시보드. `/ss` �
 /ss
 ```
 
-빌드 결과는 `~/.claude/session-dashboard/`에 출력됩니다.
+빌드 결과는 `output/session-dashboard/`에 출력됩니다.
+
+---
+
+## 플러그인: `my-session-id`
+
+세션 ID를 3개 훅 이벤트(SessionStart, UserPromptSubmit, Stop)에서 캡처하여 이벤트별 비교·검증하는 플러그인.
+
+### 기능
+
+- 각 훅 이벤트에서 세션 ID를 프로젝트 `.claude/` 하위에 별도 파일로 저장
+- 세션 ID 일치 여부로 크로스세션 오염 감지
+- 커맨드 없음 — `session-id` 스킬로 검증 실행
+
+### 훅 이벤트
+
+| 이벤트 | 저장 파일 |
+|--------|----------|
+| `SessionStart` | `.claude/.session-id-start` |
+| `UserPromptSubmit` | `.claude/.session-id-prompt` |
+| `Stop` | `.claude/.session-id-stop` |
 
 ---
 
@@ -169,8 +194,8 @@ Claude Code 대화 세션을 시각적으로 탐색하는 대시보드. `/ss` �
 
 | 경로 | 설치 포함 | 설명 |
 |------|-----------|------|
-| `my-session-wrap/`, `my-cowork/` 등 | O | `marketplace.json`의 `source` 필드가 가리키는 디렉토리 |
-| `handoff/`, `docs/`, `temp/` | X | 개발용 문서. 플러그인 설치에 미포함 |
+| `my-session-wrap/`, `my-cowork/`, `my-session-dashboard/`, `my-session-id/` | O | `marketplace.json`의 `source` 필드가 가리키는 디렉토리 |
+| `handoff/`, `docs/`, `temp/`, `output/` | X | 개발용 문서·빌드 결과. 플러그인 설치에 미포함 |
 | `CLAUDE.md`, `README.md`, `.gitignore` | X | 레포 관리 파일. 설치에 미포함 |
 
 `marketplace.json`의 `source` 필드(예: `"./my-session-wrap"`)가 설치 범위를 결정합니다.
@@ -188,6 +213,7 @@ my-claude-plugins/          git push          /plugin update
   my-session-wrap/                         my-claude-plugins/ (설치 결과)
   my-cowork/
   my-session-dashboard/
+  my-session-id/
 ```
 
 | 경로 | 역할 | 관리 방식 |
@@ -200,6 +226,32 @@ my-claude-plugins/          git push          /plugin update
 /plugin update my-session-wrap
 /plugin update my-cowork
 /plugin update my-session-dashboard
+/plugin update my-session-id
+```
+
+---
+
+## 플러그인 릴리스 워크플로우
+
+플러그인 코드를 수정한 후 릴리스할 때의 절차.
+
+### 절차
+
+1. 플러그인 코드 수정
+2. `<plugin>/.claude-plugin/plugin.json`의 `version` 올림 (semver)
+3. `.claude-plugin/marketplace.json`의 해당 플러그인 `version` 동일하게 올림
+4. `README.md` Changelog에 항목 추가 (최신을 최상단에)
+5. `git commit` — pre-commit hook이 버전 일치 자동 검증
+6. `git push`
+7. Claude Code에서 `/plugin update <plugin-name>` 실행
+
+### pre-commit hook (버전 동기화 검증)
+
+`git-hooks/check-version-sync.js`가 커밋 시 자동 실행되어, `marketplace.json`과 각 `plugin.json`의 version이 불일치하면 커밋을 차단합니다.
+
+```bash
+# 초기 설정 (clone 후 1회)
+git config core.hooksPath git-hooks
 ```
 
 ---
@@ -215,6 +267,14 @@ my-claude-plugins/          git push          /plugin update
 
 | 날짜 | 버전 | 플러그인 | 변경 내용 |
 |------|------|----------|-----------|
+| 2026-02-25 | my-session-wrap 2.0.0 | my-session-wrap | feat: handoff 파일명에 당일 순번(NN) 자동 부여 (`handoff_YYYYMMDD_NN_한줄요약.md`) |
+| 2026-02-25 | my-session-wrap 2.0.0 | my-session-wrap | feat: handoff 파일명을 YYYYMMDD_한줄요약 형식으로 변경 (순번 로직 제거 → 요약 기반) |
+| 2026-02-25 | my-session-dashboard 1.1.0 | my-session-dashboard | feat: plans 폴더 검색·조회 기능 추가 |
+| 2026-02-25 | my-session-dashboard 1.1.0 | my-session-dashboard | feat: 빌드 출력 경로를 레포 최상위 output/으로 변경 |
+| 2026-02-24 | my-session-wrap 2.0.0 | my-session-wrap | fix: 디버그 코드 제거 → 프로덕션 전환 (SessionStart만 유지) |
+| 2026-02-24 | my-session-id 1.0.0 | my-session-id | feat: 세션 ID 캡처 및 훅 이벤트별 비교 플러그인 추가 |
+| 2026-02-24 | my-session-wrap 2.0.0 | my-session-wrap | fix: capture-session-id를 bash→Node.js로 전환 (Windows 호환) |
+| 2026-02-24 | my-session-wrap 2.0.0 | my-session-wrap | feat: UserPromptSubmit hook으로 세션 ID 파일 기반 캡처 |
 | 2026-02-22 | my-session-dashboard 1.1.0 | my-session-dashboard | feat: 시스템 태그 제거, NaN/빈 세션 필터링, self-contained HTML, 증분 빌드, 한국어 UI, 키워드 폴백, 필터 헤더 이동 |
 | 2026-02-22 | my-session-wrap 1.1.0 | my-session-wrap | feat: handoff 문서에 세션 ID 필수 기록 — SessionStart hook으로 $CLAUDE_SESSION_ID 자동 캡처 |
 | 2026-02-22 | my-session-dashboard 1.0.0 | my-session-dashboard | 신규: 세션 대시보드 플러그인 — JSONL 전처리 + 브라우저 뷰어, /ss 커맨드 |
