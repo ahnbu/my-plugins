@@ -8,7 +8,7 @@ const CLAUDE_DIR = path.join(
   ".claude"
 );
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects");
-const DIST_DIR = path.join(CLAUDE_DIR, "session-dashboard");
+const DIST_DIR = path.join(__dirname, "..", "output", "session-dashboard");
 const CACHE_FILE = path.join(DIST_DIR, ".build-cache.json");
 
 const STOPWORDS = new Set([

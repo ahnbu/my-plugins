@@ -31,19 +31,21 @@ node "${PLUGIN_DIR}/build.js"
 - `~/.claude/projects/` 하위 모든 JSONL 세션 파일 스캔
 - 첫 user 메시지에서 키워드 3개 추출하여 제목 생성
 - 토큰 사용량, 도구 사용 통계 계산
-- 출력: `~/.claude/session-dashboard/sessions.json` + `sessions/*.json`
+- 출력: `${PLUGIN_DIR}/../output/session-dashboard/index.html` (self-contained HTML)
 
 ### 3. 브라우저에서 열기
 
+빌드 로그 마지막 줄의 출력 경로를 파싱하여 브라우저에서 엽니다:
+
 ```bash
 # Windows
-start "" "$HOME/.claude/session-dashboard/index.html"
+start "" "<빌드 출력 경로>/index.html"
 
 # Mac
-open ~/.claude/session-dashboard/index.html
+open <빌드 출력 경로>/index.html
 
 # Linux
-xdg-open ~/.claude/session-dashboard/index.html
+xdg-open <빌드 출력 경로>/index.html
 ```
 
 ### 4. 결과 보고

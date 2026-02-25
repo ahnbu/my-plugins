@@ -14,6 +14,9 @@ node_modules/
 *.log
 /tmp/
 
+# Build output
+output/
+
 # bkit (auto-generated)
 .bkit/
 .claude/
