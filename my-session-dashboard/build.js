@@ -8,6 +8,7 @@ const CLAUDE_DIR = path.join(
   ".claude"
 );
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects");
+const PLANS_DIR = path.join(CLAUDE_DIR, "plans");
 const DIST_DIR = path.join(__dirname, "..", "output", "session-dashboard");
 const CACHE_FILE = path.join(DIST_DIR, ".build-cache.json");
 
@@ -324,6 +325,125 @@ function findCwd(entries) {
   return "";
 }
 
+// ── Plan 파싱 ──
+function parsePlan(filePath) {
+  const slug = path.basename(filePath, ".md");
+  const stat = fs.statSync(filePath);
+  const rawText = fs.readFileSync(filePath, "utf8");
+
+  if (!rawText.trim()) return null;
+
+  // 제목 추출: 첫 번째 # 줄
+  const lines = rawText.split("\n");
+  let title = slug;
+  const firstHeading = lines.find((l) => /^#\s+/.test(l));
+  if (firstHeading) {
+    title = firstHeading.replace(/^#+\s+/, "").trim();
+  }
+
+  // 완료 여부 판단
+  const isCompleted = /^#\s*완료/.test(lines[0]?.trim() || "");
+
+  // timestamp = mtime
+  const timestamp = new Date(stat.mtimeMs).toISOString();
+
+  // Context 섹션 추출 (firstMessage 용)
+  let contextText = "";
+  const contextIdx = lines.findIndex((l) => /^##\s*(Context|컨텍스트)/i.test(l));
+  if (contextIdx >= 0) {
+    for (let i = contextIdx + 1; i < lines.length; i++) {
+      if (/^##\s/.test(lines[i])) break;
+      if (lines[i].trim()) {
+        contextText += lines[i].trim() + " ";
+      }
+    }
+  }
+  const firstMessage = (contextText || rawText.substring(0, 200)).trim().substring(0, 200);
+
+  // 키워드: 제목 + context에서 추출
+  const kwSource = title + " " + contextText;
+  const keywords = extractKeywords(kwSource);
+
+  // 프로젝트 경로 추정: 본문에서 경로 패턴 탐색
+  const pathMatch = rawText.match(/[A-Z]:[/\\][\w/\\.-]+|~\/[\w/\\.-]+/);
+  const project = pathMatch ? normalizeProjectPath(pathMatch[0].replace(/[/\\][^/\\]+\.\w+$/, "")) : "";
+
+  return {
+    metadata: {
+      planId: "plan:" + slug,
+      sessionId: "plan:" + slug,
+      type: "plan",
+      title,
+      slug,
+      isCompleted,
+      timestamp,
+      keywords,
+      project,
+      projectDisplay: project,
+      firstMessage,
+      charCount: rawText.length,
+      // 세션 호환 필드 (빈 값)
+      gitBranch: "",
+      models: [],
+      messageCount: 0,
+      toolUseCount: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      toolNames: {},
+    },
+    content: rawText,
+  };
+}
+
+function loadPlans(cache, newCache) {
+  const planResults = [];
+  let newCount = 0;
+  let cachedCount = 0;
+
+  if (!fs.existsSync(PLANS_DIR)) {
+    console.warn(`⚠️  Plans 디렉토리 없음: ${PLANS_DIR}`);
+    return { planResults, newCount, cachedCount };
+  }
+
+  const files = fs.readdirSync(PLANS_DIR).filter((f) => f.endsWith(".md"));
+
+  for (const file of files) {
+    const filePath = path.join(PLANS_DIR, file);
+    const slug = path.basename(file, ".md");
+    const cacheKey = "plan:" + slug;
+
+    try {
+      const stat = fs.statSync(filePath);
+      const mtime = stat.mtimeMs;
+
+      if (cache[cacheKey] && cache[cacheKey].mtime === mtime) {
+        const cached = cache[cacheKey];
+        planResults.push({
+          metadata: cached.metadata,
+          content: cached.content,
+        });
+        newCache[cacheKey] = cached;
+        cachedCount++;
+        continue;
+      }
+
+      const result = parsePlan(filePath);
+      if (!result) continue;
+      planResults.push(result);
+      newCache[cacheKey] = {
+        mtime,
+        metadata: result.metadata,
+        content: result.content,
+      };
+      newCount++;
+    } catch (err) {
+      console.warn(`⚠️  Plan 파싱 실패: ${file} — ${err.message}`);
+    }
+  }
+
+  return { planResults, newCount, cachedCount };
+}
+
 // ── 캐시 관리 ──
 function loadCache() {
   try {
@@ -357,7 +477,7 @@ function main() {
 
   const cache = loadCache();
   const newCache = {};
-  const allResults = [];
+  const sessionResults = [];
   let newCount = 0;
   let cachedCount = 0;
 
@@ -381,8 +501,8 @@ function main() {
         if (cache[sessionId] && cache[sessionId].mtime === mtime) {
           const cached = cache[sessionId];
           if (cached.metadata.messageCount > 0) {
-            allResults.push({
-              metadata: cached.metadata,
+            sessionResults.push({
+              metadata: { ...cached.metadata, type: "session" },
               messages: cached.messages,
             });
             newCache[sessionId] = cached;
@@ -395,7 +515,8 @@ function main() {
         const result = processSession(filePath);
         if (!result) continue;
         if (result.metadata.messageCount === 0) continue;
-        allResults.push(result);
+        result.metadata.type = "session";
+        sessionResults.push(result);
         newCache[sessionId] = {
           mtime,
           metadata: result.metadata,
@@ -408,19 +529,27 @@ function main() {
     }
   }
 
-  // Sort newest first
+  // Plans 로드
+  const { planResults, newCount: planNew, cachedCount: planCached } = loadPlans(cache, newCache);
+
+  // 병합 & 정렬
+  const allResults = [...sessionResults, ...planResults];
   allResults.sort(
     (a, b) => new Date(b.metadata.timestamp) - new Date(a.metadata.timestamp)
   );
 
-  const allSessions = allResults.map((r) => r.metadata);
+  const allMeta = allResults.map((r) => r.metadata);
   const sessionsData = {};
   for (const r of allResults) {
-    sessionsData[r.metadata.sessionId] = r.messages;
+    if (r.metadata.type === "plan") {
+      sessionsData[r.metadata.sessionId] = r.content;
+    } else {
+      sessionsData[r.metadata.sessionId] = r.messages;
+    }
   }
 
   // Build self-contained HTML
-  const metaJson = JSON.stringify(allSessions).replace(/<\//g, "<\\/");
+  const metaJson = JSON.stringify(allMeta).replace(/<\//g, "<\\/");
   const dataJson = JSON.stringify(sessionsData).replace(/<\//g, "<\\/");
   let html = fs.readFileSync(htmlSrc, "utf8");
   const dataScript = `<script>
@@ -433,7 +562,7 @@ window.__SESSIONS_DATA__ = ${dataJson};
   // 캐시 저장
   saveCache(newCache);
 
-  console.log(`✅ ${allResults.length}개 세션 (신규 ${newCount}, 캐시 ${cachedCount})`);
+  console.log(`✅ ${sessionResults.length}개 세션 (신규 ${newCount}, 캐시 ${cachedCount}) | ${planResults.length}개 플랜 (신규 ${planNew}, 캐시 ${planCached})`);
   console.log(`📁 출력: ${htmlDest}`);
   console.log(`\n🌐 브라우저에서 열기: ${htmlDest}`);
 }

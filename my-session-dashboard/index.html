@@ -22,6 +22,8 @@
     --keyword-text: #79c0ff;
     --success: #3fb950;
     --warning: #d29922;
+    --plan-accent: #7ee787;
+    --plan-bg: #1a2a1a;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -138,6 +140,9 @@
 
   .session-item:hover { background: var(--bg-tertiary); }
   .session-item.active { background: var(--bg-tertiary); border-left: 3px solid var(--accent); }
+  .session-item.plan-item { border-left: 3px solid var(--plan-accent); }
+  .session-item.plan-item.active { border-left: 3px solid var(--plan-accent); }
+  .session-item.completed { opacity: 0.5; }
 
   .session-title {
     font-size: 13px;
@@ -378,6 +383,52 @@
     height: 100%;
     color: var(--text-dim);
   }
+
+  .type-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  .type-badge.plan { background: var(--plan-bg); color: var(--plan-accent); }
+  .type-badge.completed { background: var(--bg-tertiary); color: var(--text-dim); }
+
+  .filter-separator {
+    width: 1px;
+    background: var(--border);
+    align-self: stretch;
+    margin: 0 4px;
+  }
+
+  /* Plan detail content */
+  .plan-content {
+    padding: 24px;
+    max-width: 900px;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .plan-content h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 20px 0 8px;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+  }
+
+  .plan-content h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 16px 0 6px;
+    color: var(--text);
+  }
 </style>
 </head>
 <body>
@@ -412,6 +463,7 @@
   let sessions = [];
   let activeSessionId = null;
   let activeFilter = "all";
+  let activeTypeFilter = "all";
   let searchQuery = "";
 
   const ROLE_LABELS = { user: "사용자", assistant: "어시스턴트" };
@@ -436,6 +488,8 @@
 
   // ── Stats ──
   function renderStats() {
+    const sessionCount = sessions.filter((s) => s.type !== "plan").length;
+    const planCount = sessions.filter((s) => s.type === "plan").length;
     const totalTokens = sessions.reduce(
       (sum, s) => sum + (s.totalInputTokens || 0) + (s.totalOutputTokens || 0), 0
     );
@@ -444,28 +498,50 @@
       : totalTokens > 1_000
       ? (totalTokens / 1_000).toFixed(0) + "K"
       : totalTokens;
-    document.getElementById("stats").textContent =
-      `${sessions.length}개 세션 | ${tokenStr} 토큰`;
+    const parts = [`${sessionCount}개 세션`];
+    if (planCount > 0) parts.push(`${planCount}개 플랜`);
+    parts.push(`${tokenStr} 토큰`);
+    document.getElementById("stats").textContent = parts.join(" | ");
   }
 
   // ── Filters ──
   function buildFilters() {
-    const projects = [...new Set(sessions.map((s) => s.projectDisplay))];
+    const projects = [...new Set(sessions.filter((s) => s.type !== "plan").map((s) => s.projectDisplay))];
+    const hasPlan = sessions.some((s) => s.type === "plan");
     const container = document.getElementById("filters");
 
-    let html = '<button class="filter-btn active" data-filter="all">전체</button>';
-    for (const p of projects) {
-      const short = p.split(/[/\\]/).pop() || p;
-      html += `<button class="filter-btn" data-filter="${escapeAttr(p)}">${escapeHtml(short)}</button>`;
+    // 타입 필터
+    let html = '<button class="filter-btn active" data-type-filter="all">전체</button>';
+    html += '<button class="filter-btn" data-type-filter="session">세션</button>';
+    if (hasPlan) {
+      html += '<button class="filter-btn" data-type-filter="plan">플랜</button>';
+    }
+
+    // 구분선 + 프로젝트 필터
+    if (projects.length > 1) {
+      html += '<span class="filter-separator"></span>';
+      for (const p of projects) {
+        const short = p.split(/[/\\]/).pop() || p;
+        html += `<button class="filter-btn" data-filter="${escapeAttr(p)}">${escapeHtml(short)}</button>`;
+      }
     }
     container.innerHTML = html;
 
     container.addEventListener("click", (e) => {
       const btn = e.target.closest(".filter-btn");
       if (!btn) return;
-      container.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      activeFilter = btn.dataset.filter;
+
+      if (btn.dataset.typeFilter !== undefined) {
+        // 타입 필터 클릭
+        container.querySelectorAll("[data-type-filter]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeTypeFilter = btn.dataset.typeFilter;
+      } else if (btn.dataset.filter !== undefined) {
+        // 프로젝트 필터 클릭
+        container.querySelectorAll("[data-filter]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeFilter = btn.dataset.filter;
+      }
       renderSessionList();
     });
   }
@@ -473,18 +549,29 @@
   // ── Session List ──
   function getFilteredSessions() {
     return sessions.filter((s) => {
-      if (activeFilter !== "all" && s.projectDisplay !== activeFilter) return false;
+      // 타입 필터
+      const sType = s.type || "session";
+      if (activeTypeFilter === "session" && sType !== "session") return false;
+      if (activeTypeFilter === "plan" && sType !== "plan") return false;
+      // 프로젝트 필터 (세션에만 적용)
+      if (activeFilter !== "all" && sType === "session" && s.projectDisplay !== activeFilter) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        const searchable = [
+        const fields = [
           s.title,
           s.firstMessage,
           ...(s.keywords || []),
           s.projectDisplay,
           s.gitBranch,
-        ]
-          .join(" ")
-          .toLowerCase();
+        ];
+        // plan은 content 앞 2000자도 검색 대상에 포함
+        if (sType === "plan") {
+          const content = loadConversation(s.sessionId);
+          if (typeof content === "string") {
+            fields.push(content.substring(0, 2000));
+          }
+        }
+        const searchable = fields.join(" ").toLowerCase();
         if (!searchable.includes(q)) return false;
       }
       return true;
@@ -511,15 +598,30 @@
           hour: "2-digit", minute: "2-digit", hour12: false,
         });
 
+        const isPlan = s.type === "plan";
+        const itemClass = "session-item" +
+          (isActive ? " active" : "") +
+          (isPlan ? " plan-item" : "") +
+          (isPlan && s.isCompleted ? " completed" : "");
+
+        const badge = isPlan
+          ? (s.isCompleted
+            ? '<span class="type-badge completed">완료</span>'
+            : '<span class="type-badge plan">PLAN</span>')
+          : "";
+
+        const metaInfo = isPlan
+          ? `<span>${s.charCount || 0}자</span>`
+          : `<span>${s.messageCount || 0} 메시지</span><span>${s.toolUseCount || 0} 도구</span>`;
+
         return `
-          <div class="session-item${isActive ? " active" : ""}"
-               data-id="${s.sessionId}" onclick="selectSession('${s.sessionId}')">
-            <div class="session-title">${escapeHtml(s.title)}</div>
+          <div class="${itemClass}"
+               data-id="${s.sessionId}" onclick="selectSession('${escapeAttr(s.sessionId)}')">
+            <div class="session-title">${escapeHtml(s.title)}${badge}</div>
             <div class="session-preview">${escapeHtml(s.firstMessage || "")}</div>
             <div class="session-meta">
               <span>${dateStr} ${timeStr}</span>
-              <span>${s.messageCount || 0} 메시지</span>
-              <span>${s.toolUseCount || 0} 도구</span>
+              ${metaInfo}
               ${(s.keywords || []).map((k) => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join("")}
             </div>
           </div>
@@ -535,6 +637,11 @@
 
     const meta = sessions.find((s) => s.sessionId === sessionId);
     if (!meta) return;
+
+    if (meta.type === "plan") {
+      showPlanDetail(meta);
+      return;
+    }
 
     const mainEl = document.getElementById("main");
     const messages = loadConversation(sessionId);
@@ -606,6 +713,37 @@
     mainEl.querySelector(".messages")?.scrollTo(0, 0);
   };
 
+  function showPlanDetail(meta) {
+    const mainEl = document.getElementById("main");
+    const content = loadConversation(meta.sessionId);
+    const date = new Date(meta.timestamp);
+    const dateStr = date.toLocaleDateString("ko-KR", {
+      year: "numeric", month: "2-digit", day: "2-digit",
+    });
+    const timeStr = date.toLocaleTimeString("ko-KR", {
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+
+    const badge = meta.isCompleted
+      ? '<span class="type-badge completed">완료</span>'
+      : '<span class="type-badge plan">PLAN</span>';
+
+    let html = `
+      <div class="detail-header">
+        <h2>${escapeHtml(meta.title)} ${badge}</h2>
+        <div class="detail-meta">
+          <span><span class="label">slug:</span> ${escapeHtml(meta.slug)}</span>
+          <span><span class="label">수정일:</span> ${dateStr} ${timeStr}</span>
+          <span><span class="label">글자수:</span> ${(meta.charCount || 0).toLocaleString()}자</span>
+          ${meta.projectDisplay ? `<span><span class="label">프로젝트:</span> ${escapeHtml(meta.projectDisplay)}</span>` : ""}
+        </div>
+      </div>
+      <div class="plan-content">${renderPlanMarkdown(typeof content === "string" ? content : "")}</div>
+    `;
+    mainEl.innerHTML = html;
+    mainEl.scrollTo(0, 0);
+  }
+
   window.toggleTool = function(el) {
     const arrow = el.querySelector(".tool-arrow");
     const body = el.nextElementSibling;
@@ -641,6 +779,28 @@
       '<pre><code>$2</code></pre>'
     );
 
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+    return html;
+  }
+
+  function renderPlanMarkdown(text) {
+    if (!text) return "";
+    let html = escapeHtml(text);
+
+    // code blocks
+    html = html.replace(
+      /```(\w*)\n([\s\S]*?)```/g,
+      '<pre><code>$2</code></pre>'
+    );
+
+    // headings (## and ###)
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h2 style="font-size:20px;margin-top:0">$1</h2>');
+
+    // inline
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
     html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
