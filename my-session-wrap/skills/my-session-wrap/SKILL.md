@@ -16,6 +16,7 @@ description: "Session wrap-up: saves a structured handoff document and creates a
 Step 1. Git 감지
 Step 2. handoff 파일 생성
 Step 3. git commit (선택)
+Step 4. 규칙 후보 확인 + 재개 안내
 ```
 
 ---
@@ -59,6 +60,8 @@ bash "scripts/next-handoff.sh" "handoff" "<요약>"
 
 - 각 항목은 실제 내용이 있을 때만 포함하고, 해당 없는 항목은 생략
 - §3 피드백 루프는 AI 초안 작성 후 "검토·수정해 주세요" 안내
+- §3 레슨 중 이전 handoff에서도 언급된 패턴(2회+)이면 `[규칙 후보]` 태그 추가
+- §6 환경 스냅샷은 알려진 이슈가 있을 때만 포함 (플러그인 상태, 알려진 제약, 워크어라운드)
 
 ---
 
@@ -85,6 +88,38 @@ git commit -m "docs: [세션 작업 요약]"
 ### Git 없는 경우
 
 handoff 파일 저장 후 완료.
+
+---
+
+## Step 4: 규칙 후보 확인 + 재개 안내
+
+### 4-1. 규칙 후보 확인
+
+handoff의 `[규칙 후보]` 태그가 1개 이상이면:
+
+```
+AskUserQuestion(
+    question="[규칙 후보] 태그가 있습니다. CLAUDE.md에 규칙으로 반영할까요?",
+    options=[
+        "글로벌 CLAUDE.md에 추가",
+        "프로젝트 CLAUDE.md에 추가",
+        "이번은 스킵"
+    ]
+)
+```
+
+### 4-2. 재개 안내 출력
+
+생성된 handoff 경로를 포함한 재개 프롬프트 출력:
+
+```
+---
+✅ Handoff 저장 완료: <handoff 파일 경로>
+
+다음 세션에서 이어가려면:
+  이전 세션에 이어서 작업합니다. /continue
+---
+```
 
 ---
 
