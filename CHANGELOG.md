@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-02-26 | feat | - | inject-plugin-guidelines.js — CLAUDE.md EEXIST 섹션 존재 여부로 워크어라운드 안내 동적 전환 |
 | 2026-02-26 | feat | my-session-wrap 2.3.0 | SessionStart hook inject-plugin-guidelines.js — my-claude-plugins 폴더에서 세션 시작 시 플러그인 배포 절차(A/B) 강조 주입 |
 | 2026-02-26 | fix | - | /wrap SKILL.md — next-handoff.sh 상대경로 호출을 인라인 bash로 교체 (타 프로젝트에서 호출 시 스크립트 미발견 버그 수정) |
 | 2026-02-26 | docs | - | study-doc-system 문서관리_사례모음 — 섹션 제목 정비·사례 추가 (KPT, 업무 기억 파일 시스템, 마누스) |
