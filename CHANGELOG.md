@@ -10,6 +10,9 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-02-26 | docs | - | CLAUDE.md 수동 설치 절차 A/B 분리 — A(기존 플러그인 업데이트), B(신규 플러그인 설치, settings.json enabledPlugins 추가 포함) |
+| 2026-02-26 | docs | - | docs/플러그인에러대처_20260226.md 신규 — EEXIST 버그 원인·워크어라운드 영구 참조 문서 |
+| 2026-02-26 | chore | - | /ss-new 임시 커맨드 삭제 — my-session-dashboard 수동 설치 완료로 불필요 |
 | 2026-02-26 | chore | - | /ss-new 임시 커맨드 생성 — 개발 레포 build.js 직접 실행 (marketplace 동기화 전 우회용) |
 | 2026-02-26 | feat | my-session-wrap 2.2.0 | /continue 커맨드 신규 생성 — 최신 handoff 자동 검색·요약·재개 |
 | 2026-02-26 | feat | - | SessionStart hook check-handoff.js — 24시간 이내 handoff 감지 시 /continue 안내 |
