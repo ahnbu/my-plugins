@@ -29,11 +29,31 @@ process.stdin.on("end", () => {
 
 ━━━ 배포 절차 (정식) ━━━
 1. git push
-2. /plugin update  ← Claude Code가 marketplace pull + cache 반영 자동 처리
+2. /plugin update  ← Claude Code가 자동 처리
 
-━━━ 현재 EEXIST 버그 활성 중 — 정식 절차 대신 워크어라운드 사용 ━━━
-CLAUDE.md의 "EEXIST 버그 워크어라운드" 섹션 A/B 절차를 따를 것.
-(버그 수정 후 해당 섹션 삭제 시 이 안내도 자동으로 사라짐)
+━━━ 현재 EEXIST 버그 활성 중 — 정식 절차 대신 아래 워크어라운드 사용 ━━━
+
+[A. 기존 플러그인 업데이트]
+1. git push  (개발 레포)
+2. cd ~/.claude/plugins/marketplaces/my-claude-plugins && git pull
+3. cp -r ~/.claude/plugins/marketplaces/my-claude-plugins/<plugin>/. \\
+         ~/.claude/plugins/cache/my-claude-plugins/<plugin>/<version>/
+   ※ /* 아닌 /. 사용 — .claude-plugin/ 숨김 디렉토리 포함
+4. installed_plugins.json → version, installPath, gitCommitSha 업데이트  ← 전체 SHA 사용
+5. diff -r <marketplace>/<plugin>/ <cache>/<plugin>/<version>/  로 검증
+
+[B. 신규 플러그인 설치]
+1. cd ~/.claude/plugins/marketplaces/my-claude-plugins && git pull
+2. VERSION=$(python3 -c "import sys,json; print(json.load(open('<cache>/<plugin>/.claude-plugin/plugin.json'))['version'])")
+   mkdir -p ~/.claude/plugins/cache/my-claude-plugins/<plugin>/$VERSION
+   cp -r ~/.claude/plugins/marketplaces/my-claude-plugins/<plugin>/. \\
+         ~/.claude/plugins/cache/my-claude-plugins/<plugin>/$VERSION/
+3. installed_plugins.json에 항목 추가  (키: "<plugin>@my-claude-plugins")
+4. settings.json → enabledPlugins에 추가
+5. diff로 검증
+
+수정 파일: installed_plugins.json / settings.json(enabledPlugins)
+반영 시점: 새 세션에서만 적용
 
 ⚠️  순서 위반 금지. 임의 판단으로 단계 스킵 금지.
       `);
