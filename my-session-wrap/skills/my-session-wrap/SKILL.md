@@ -48,11 +48,28 @@ cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 세션 작업 내용을 3-4단어로 요약한다 (예: `출력경로변경`, `세션ID-훅수정`).
 
 ```bash
-bash "scripts/next-handoff.sh" "handoff" "<요약>"
+bash -c '
+HANDOFF_DIR="handoff"
+SUMMARY="<요약>"
+DATE=$(date +%Y%m%d)
+mkdir -p "$HANDOFF_DIR"
+MAX_SEQ=0
+for f in "$HANDOFF_DIR"/handoff_${DATE}_[0-9][0-9]_*.md; do
+  [ -f "$f" ] || continue
+  seq=$(basename "$f" | sed "s/^handoff_[0-9]\{8\}_\([0-9]\{2\}\)_.*/\1/")
+  seq=$((10#$seq))
+  [ "$seq" -gt "$MAX_SEQ" ] && MAX_SEQ=$seq
+done
+SEQ=$(printf "%02d" $((MAX_SEQ + 1)))
+NEW_FILE="$HANDOFF_DIR/handoff_${DATE}_${SEQ}_${SUMMARY}.md"
+[ -f "$NEW_FILE" ] && { echo "ERROR: $NEW_FILE already exists" >&2; exit 1; }
+echo "$NEW_FILE"
+'
 ```
 
+- `<요약>` 자리에 실제 요약어를 채워 실행 (예: `SUMMARY="Junction자동화-dotfiles통합완료"`)
 - stdout으로 출력된 경로(예: `handoff/handoff_20260225_01_출력경로변경.md`)를 Write 도구의 대상으로 사용
-- **스크립트 실패(exit 1) 시**: 사용자에게 오류 보고 후 중단. 직접 파일명을 결정하거나 기존 파일에 쓰는 것은 절대 금지
+- **exit 1 시**: 사용자에게 오류 보고 후 중단. 직접 파일명을 결정하거나 기존 파일에 쓰는 것은 절대 금지
 
 ### 2-3. handoff 파일 작성
 
