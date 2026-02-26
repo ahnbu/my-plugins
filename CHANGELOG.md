@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-02-26 | docs | - | Hook세팅가이드 §6 — hook stdout이 Claude 컨텍스트(system-reminder)에만 주입됨, 검증법 추가 |
 | 2026-02-26 | fix | - | inject-plugin-guidelines.js — EEXIST 워크어라운드 절차 A/B 인라인 포함 (CLAUDE.md 참조 안내에서 직접 내용으로 교체) |
 | 2026-02-26 | feat | - | inject-plugin-guidelines.js — CLAUDE.md EEXIST 섹션 존재 여부로 워크어라운드 안내 동적 전환 |
 | 2026-02-26 | feat | my-session-wrap 2.3.0 | SessionStart hook inject-plugin-guidelines.js — my-claude-plugins 폴더에서 세션 시작 시 플러그인 배포 절차(A/B) 강조 주입 |
