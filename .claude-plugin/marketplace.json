@@ -6,7 +6,7 @@
       "name": "my-session-wrap",
       "description": "Session wrap-up workflow with multi-agent analysis pipeline",
       "source": "./my-session-wrap",
-      "version": "2.4.0"
+      "version": "2.5.0"
     },
     {
       "name": "my-cowork",

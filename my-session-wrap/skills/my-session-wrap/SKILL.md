@@ -32,15 +32,39 @@ git status --short 2>/dev/null && echo "GIT_AVAILABLE" || echo "NO_GIT"
 
 ## Step 1.5: 프로젝트 CLAUDE.md Wrap 체크리스트 확인
 
-프로젝트 CLAUDE.md(또는 `.claude/CLAUDE.md`)에서 `## Wrap 체크리스트` 섹션을 읽어라:
+프로젝트 CLAUDE.md(또는 `.claude/CLAUDE.md`)를 읽어라:
 
 ```bash
 # 프로젝트 CLAUDE.md 위치 탐색 (우선순위: .claude/CLAUDE.md > CLAUDE.md)
 cat .claude/CLAUDE.md 2>/dev/null || cat CLAUDE.md 2>/dev/null || echo "NO_PROJECT_CLAUDE_MD"
 ```
 
-- `## Wrap 체크리스트` 섹션이 **있으면**: 각 항목을 git diff, 파일 존재 여부 등으로 실제 확인하고, 미완료 항목이 있으면 사용자에게 보고 후 처리한다. handoff 작성 전에 완료하라.
-- 섹션이 **없으면**: 이 단계 스킵.
+```bash
+# 이번 세션 변경 파일 목록
+git diff --name-only HEAD 2>/dev/null; git diff --name-only --cached 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null
+```
+
+### 1.5-A: 기존 체크리스트 항목 확인
+
+`## Wrap 체크리스트` 섹션이 **있으면**: 각 항목을 파일 존재 여부·git diff 등으로 실제 확인하고, 미완료 항목이 있으면 사용자에게 보고 후 처리한다. handoff 작성 전에 완료하라.
+
+### 1.5-B: 체크리스트 후보 탐지 (신규 제안)
+
+프로젝트 CLAUDE.md에서 **관리 대상으로 명시된 파일·섹션** (예: `## 관리 문서`, `## 관리 대상` 등)을 파악한다.
+
+- 관리 대상 파일 중 이번 세션에서 변경된 것을 찾는다 (git diff와 교차)
+- 그 중 `## Wrap 체크리스트`에 **이미 등록되지 않은** 항목만 추린다
+- 해당 항목이 있으면 사용자에게 제안:
+
+```
+AskUserQuestion(
+    question="Wrap 체크리스트에 추가할 항목이 탐지됐습니다. 추가할까요?",
+    options=["추가", "스킵"]
+)
+```
+
+- 추가 선택 시: 프로젝트 CLAUDE.md의 `## Wrap 체크리스트` 섹션에 해당 항목을 Edit 도구로 추가한다.
+- 프로젝트 CLAUDE.md에 관리 대상 파일 명시가 없거나, 체크리스트 후보가 없으면: 이 단계 스킵.
 
 ---
 

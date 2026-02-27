@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-02-27 | feat | my-session-wrap 2.5.0 | /wrap Step 1.5 개선 — 1.5-B 추가: 프로젝트 CLAUDE.md의 관리 대상 파일과 git diff 교차 분석으로 체크리스트 미등록 항목만 탐지·제안 |
 | 2026-02-27 | feat | my-session-wrap 2.4.0 | /wrap SKILL.md — Step 1.5 추가: 프로젝트 CLAUDE.md의 `## Wrap 체크리스트` 섹션을 읽어 미완료 항목을 handoff 작성 전에 처리 |
 | 2026-02-26 | docs | - | Hook세팅가이드 §6 — hook stdout이 Claude 컨텍스트(system-reminder)에만 주입됨, 검증법 추가 |
 | 2026-02-26 | fix | - | inject-plugin-guidelines.js — EEXIST 워크어라운드 절차 A/B 인라인 포함 (CLAUDE.md 참조 안내에서 직접 내용으로 교체) |
