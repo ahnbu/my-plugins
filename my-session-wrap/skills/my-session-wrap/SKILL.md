@@ -14,6 +14,7 @@ description: "Session wrap-up: saves a structured handoff document and creates a
 
 ```
 Step 1. Git 감지
+Step 1.5. 프로젝트 CLAUDE.md Wrap 체크리스트 확인
 Step 2. handoff 파일 생성
 Step 3. git commit (선택)
 Step 4. 규칙 후보 확인 + 재개 안내
@@ -26,6 +27,20 @@ Step 4. 규칙 후보 확인 + 재개 안내
 ```bash
 git status --short 2>/dev/null && echo "GIT_AVAILABLE" || echo "NO_GIT"
 ```
+
+---
+
+## Step 1.5: 프로젝트 CLAUDE.md Wrap 체크리스트 확인
+
+프로젝트 CLAUDE.md(또는 `.claude/CLAUDE.md`)에서 `## Wrap 체크리스트` 섹션을 읽어라:
+
+```bash
+# 프로젝트 CLAUDE.md 위치 탐색 (우선순위: .claude/CLAUDE.md > CLAUDE.md)
+cat .claude/CLAUDE.md 2>/dev/null || cat CLAUDE.md 2>/dev/null || echo "NO_PROJECT_CLAUDE_MD"
+```
+
+- `## Wrap 체크리스트` 섹션이 **있으면**: 각 항목을 git diff, 파일 존재 여부 등으로 실제 확인하고, 미완료 항목이 있으면 사용자에게 보고 후 처리한다. handoff 작성 전에 완료하라.
+- 섹션이 **없으면**: 이 단계 스킵.
 
 ---
 
