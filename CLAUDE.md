@@ -127,6 +127,29 @@ diff -r ~/.claude/plugins/marketplaces/my-claude-plugins/<plugin-name>/ \
 
 **새 세션 필요**: 캐시 동기화 후 hooks/skills/commands 반영은 새 세션에서만 적용.
 
+## 문서 파일 이름 규칙
+
+### 비개발 문서 (조사, 분석, 계획, 의사결정 등)
+
+```
+YYYYMMDD_이슈명.md
+```
+
+- 날짜는 문서 최초 작성일 기준 (이후 수정으로 변경하지 않음)
+- 이슈명은 한국어, 언더스코어(`_`) 구분
+- 영어 제목 금지. 기술 용어는 혼용 허용 (예: `20260224_세션ID테스트_2차_Node전환.md`)
+- 불필요한 태그 접미어 금지 (예: `_claude`, `_v1` 등은 버전관리 용도 외 사용 금지)
+
+### Handoff 문서
+
+```
+docs/<plugin-name>/handoff/handoff_YYYYMMDD_NN_한줄요약.md
+```
+
+- `NN`: 당일 순번 01부터
+- 한줄요약: 한국어, 하이픈(`-`) 구분 허용
+- 반드시 `handoff/` 서브폴더에 위치
+
 ## Git Commit 규칙
 
 ### 형식
