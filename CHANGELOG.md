@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-01 | feat | my-session-wrap 2.6.0 | /wrap SKILL.md — AskUserQuestion 3곳 전면 제거: 체크리스트 후보·규칙 후보는 보고로 전환, git commit은 자동 실행으로 변경 |
 | 2026-02-28 | docs | - | docs/공통 파일명 규격 통일 — YYYYMMDD_이슈명 포맷 적용, 구파일 삭제 |
 | 2026-02-28 | docs | - | 전체 docs 파일명 규격 통일 — YYYYMMDD_이슈명 포맷 적용, study-doc-system·study-session-history-analysis → docs/문서시스템연구·세션이력분석으로 이동 및 한글화 |
 | 2026-02-28 | docs | - | docs/my-session-wrap 파일명 규격 통일 — YYYYMMDD_이슈명 포맷 적용, handoff 서브폴더 분리, CLAUDE.md에 문서 파일 이름 규칙 추가 |

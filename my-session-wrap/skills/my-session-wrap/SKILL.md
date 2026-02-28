@@ -54,16 +54,15 @@ git diff --name-only HEAD 2>/dev/null; git diff --name-only --cached 2>/dev/null
 
 - 관리 대상 파일 중 이번 세션에서 변경된 것을 찾는다 (git diff와 교차)
 - 그 중 `## Wrap 체크리스트`에 **이미 등록되지 않은** 항목만 추린다
-- 해당 항목이 있으면 사용자에게 제안:
+- 해당 항목이 있으면 목록을 출력하고 자동으로 다음 단계로 진행:
 
 ```
-AskUserQuestion(
-    question="Wrap 체크리스트에 추가할 항목이 탐지됐습니다. 추가할까요?",
-    options=["추가", "스킵"]
-)
+⚠️ Wrap 체크리스트 후보 탐지:
+  - <항목 1>
+  - <항목 2>
+추가하려면 wrap 완료 후 "체크리스트에 추가해줘"로 요청.
 ```
 
-- 추가 선택 시: 프로젝트 CLAUDE.md의 `## Wrap 체크리스트` 섹션에 해당 항목을 Edit 도구로 추가한다.
 - 프로젝트 CLAUDE.md에 관리 대상 파일 명시가 없거나, 체크리스트 후보가 없으면: 이 단계 스킵.
 
 ---
@@ -121,7 +120,7 @@ echo "$NEW_FILE"
 
 ---
 
-## Step 3: git commit (선택)
+## Step 3: git commit
 
 ### Git 없는 경우
 
@@ -138,21 +137,12 @@ ls CHANGELOG.md 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
 - **EXISTS**: 기존 파일의 양식을 확인한 후 이번 세션 변경사항을 동일 양식으로 추가. Scope는 실제 변경 범위로 작성 (포괄값 금지).
 - **NOT_FOUND**: `C:\Users\ahnbu\CHANGELOG_TEMPLATE.md`를 Read하여 형식을 확인한 후 `CHANGELOG.md`를 새로 생성.
 
-#### 3-2. 커밋 생성 → AskUserQuestion
+#### 3-2. 커밋 생성
 
-```
-AskUserQuestion(
-    question="git commit을 생성할까요?",
-    options=[
-        "git commit 생성",
-        "skip"
-    ]
-)
-```
+handoff 파일 포함 변경사항을 스테이징 후 커밋한다.
 
-선택 시:
 ```bash
-git add -p   # 사용자가 직접 스테이징 확인
+git add -A
 git commit -m "docs: [세션 작업 요약]"
 ```
 
@@ -162,17 +152,10 @@ git commit -m "docs: [세션 작업 요약]"
 
 ### 4-1. 규칙 후보 확인
 
-handoff의 `[규칙 후보]` 태그가 1개 이상이면:
+handoff의 `[규칙 후보]` 태그가 1개 이상이면 재개 안내에 포함시켜 출력:
 
 ```
-AskUserQuestion(
-    question="[규칙 후보] 태그가 있습니다. CLAUDE.md에 규칙으로 반영할까요?",
-    options=[
-        "글로벌 CLAUDE.md에 추가",
-        "프로젝트 CLAUDE.md에 추가",
-        "이번은 스킵"
-    ]
-)
+⚠️ [규칙 후보] N건 — handoff §3 참조. 반영하려면 "규칙 후보 반영해줘"로 요청.
 ```
 
 ### 4-2. 재개 안내 출력
