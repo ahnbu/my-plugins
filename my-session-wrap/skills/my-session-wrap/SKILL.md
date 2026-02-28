@@ -123,7 +123,22 @@ echo "$NEW_FILE"
 
 ## Step 3: git commit (선택)
 
-### Git 있는 경우 → AskUserQuestion
+### Git 없는 경우
+
+handoff 파일 저장 후 완료.
+
+### Git 있는 경우
+
+#### 3-1. CHANGELOG.md 업데이트 (커밋 전 필수)
+
+```bash
+ls CHANGELOG.md 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
+```
+
+- **EXISTS**: 기존 파일의 양식을 확인한 후 이번 세션 변경사항을 동일 양식으로 추가. Scope는 실제 변경 범위로 작성 (포괄값 금지).
+- **NOT_FOUND**: `C:\Users\ahnbu\CHANGELOG_TEMPLATE.md`를 Read하여 형식을 확인한 후 `CHANGELOG.md`를 새로 생성.
+
+#### 3-2. 커밋 생성 → AskUserQuestion
 
 ```
 AskUserQuestion(
@@ -140,10 +155,6 @@ AskUserQuestion(
 git add -p   # 사용자가 직접 스테이징 확인
 git commit -m "docs: [세션 작업 요약]"
 ```
-
-### Git 없는 경우
-
-handoff 파일 저장 후 완료.
 
 ---
 

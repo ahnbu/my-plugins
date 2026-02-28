@@ -10,6 +10,8 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-02-28 | fix | - | /wrap SKILL.md Step 3 — CHANGELOG 업데이트를 커밋 전 필수 단계로 추가 (기존 양식 존중, 없으면 템플릿 생성, Scope 포괄값 금지 명시) |
+| 2026-02-28 | docs | - | handoff 폴더명 변경 의사결정 기록 추가 (wrap 개명·점 접두사 모두 기각) |
 | 2026-02-27 | feat | my-session-wrap 2.5.0 | /wrap Step 1.5 개선 — 1.5-B 추가: 프로젝트 CLAUDE.md의 관리 대상 파일과 git diff 교차 분석으로 체크리스트 미등록 항목만 탐지·제안 |
 | 2026-02-27 | feat | my-session-wrap 2.4.0 | /wrap SKILL.md — Step 1.5 추가: 프로젝트 CLAUDE.md의 `## Wrap 체크리스트` 섹션을 읽어 미완료 항목을 handoff 작성 전에 처리 |
 | 2026-02-26 | docs | - | Hook세팅가이드 §6 — hook stdout이 Claude 컨텍스트(system-reminder)에만 주입됨, 검증법 추가 |
