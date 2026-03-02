@@ -18,6 +18,8 @@ node_modules/
 # Build output
 output/
 
+handoff/
+
 # bkit (auto-generated)
 .bkit/
 .claude/

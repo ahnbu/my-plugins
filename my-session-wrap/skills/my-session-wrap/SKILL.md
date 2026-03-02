@@ -139,12 +139,19 @@ ls CHANGELOG.md 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
 
 #### 3-2. 커밋 생성
 
-handoff 파일 포함 변경사항을 스테이징 후 커밋한다.
+미커밋 작업물을 **관심사별로 분리하여 커밋**한다. 각 커밋에 CHANGELOG를 포함한다.
+
+- 같은 관심사(같은 맥락·목적)의 파일은 하나의 커밋으로 묶는다.
+- 맥락이 다른 파일은 별도 커밋으로 분리한다.
 
 ```bash
-git add -A
-git commit -m "docs: [세션 작업 요약]"
+git add <작업물 파일들>
+git add CHANGELOG.md
+git commit -m "docs(<scope>): <한 줄 요약>"
+# 복수 관심사인 경우 위 과정을 반복
 ```
+
+> **handoff 파일은 커밋하지 않는다.** `handoff/`는 `.gitignore`에 등록된 세션 메타데이터이므로 git이 추적하지 않는다.
 
 ---
 
