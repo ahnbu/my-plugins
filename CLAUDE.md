@@ -90,12 +90,12 @@ YYYYMMDD_이슈명.md
 ### Handoff 문서
 
 ```
-docs/<plugin-name>/handoff/handoff_YYYYMMDD_NN_한줄요약.md
+_docs/<plugin-name>/_handoff/handoff_YYYYMMDD_NN_한줄요약.md
 ```
 
 - `NN`: 당일 순번 01부터
 - 한줄요약: 한국어, 하이픈(`-`) 구분 허용
-- 반드시 `handoff/` 서브폴더에 위치
+- 반드시 `_handoff/` 서브폴더에 위치
 
 ## Git Commit 규칙
 

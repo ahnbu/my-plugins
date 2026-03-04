@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-04 | docs | - | CLAUDE.md — Handoff 문서 경로 `docs/.../handoff/` → `_docs/.../_handoff/` 수정 (폴더명 변경 방침 동기화) |
 | 2026-03-04 | docs | - | README.md — `handoff/` → `_handoff/` 경로 참조 2건 수정 (폴더명 변경 방침 동기화) |
 | 2026-03-04 | fix | my-session-wrap | `SKILL.md`, `check-handoff.js`, `next-handoff.sh`, `continue.md` — `handoff/` → `_handoff/` 경로 변경 반영 (폴더명 변경 방침 동기화) |
 | 2026-03-04 | fix | my-session-wrap 2.6.1 | inject-plugin-guidelines.js — EEXIST 워크어라운드 분기 제거, 정식 배포 절차만 출력하도록 간소화 |
