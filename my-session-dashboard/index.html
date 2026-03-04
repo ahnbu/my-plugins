@@ -353,6 +353,31 @@
     padding: 0;
   }
 
+  .md-table-wrap {
+    margin: 8px 0;
+    overflow-x: auto;
+  }
+
+  table.md-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0;
+  }
+
+  .md-table th,
+  .md-table td {
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    text-align: left;
+    white-space: normal;
+    vertical-align: top;
+  }
+
+  .md-table th {
+    background: var(--bg-tertiary);
+    font-weight: 600;
+  }
+
   /* Scrollbar */
   ::-webkit-scrollbar { width: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -781,6 +806,69 @@
     return escapeHtml(str).replace(/'/g, "&#39;");
   }
 
+  function parseMarkdownTable(html) {
+    if (!html) return html;
+
+    // Protect code blocks so `|` text in <pre><code> is never parsed as a table.
+    const codeBlocks = [];
+    const protectedHtml = html.replace(
+      /<pre><code>[\s\S]*?<\/code><\/pre>/g,
+      (block) => {
+        const token = `__CODE_BLOCK_${codeBlocks.length}__`;
+        codeBlocks.push(block);
+        return token;
+      }
+    );
+
+    const tableBlockPattern = /(^|\n)((?:[ \t]*\|[^\n]*\|[ \t]*(?:\r?\n|$)){2,})/g;
+
+    const parsed = protectedHtml.replace(
+      tableBlockPattern,
+      (match, prefix, block) => {
+        const lines = block.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        if (lines.length < 2) return match;
+
+        const splitCells = (line) =>
+          line
+            .trim()
+            .replace(/^\|/, "")
+            .replace(/\|$/, "")
+            .split("|")
+            .map((cell) => cell.trim());
+
+        const isDelimiterRow = (line) => {
+          const cells = splitCells(line);
+          if (cells.length === 0) return false;
+          return cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s+/g, "")));
+        };
+
+        const renderRow = (line, tagName) => {
+          const cells = splitCells(line);
+          const inner = cells.map((cell) => `<${tagName}>${cell}</${tagName}>`).join("");
+          return `<tr>${inner}</tr>`;
+        };
+
+        let tableHtml = "";
+        if (isDelimiterRow(lines[1])) {
+          const head = renderRow(lines[0], "th");
+          const bodyRows = lines
+            .slice(2)
+            .map((line) => renderRow(line, "td"))
+            .join("");
+          const body = `<tbody>${bodyRows}</tbody>`;
+          tableHtml = `<div class="md-table-wrap"><table class="md-table"><thead>${head}</thead>${body}</table></div>`;
+        } else {
+          const bodyRows = lines.map((line) => renderRow(line, "td")).join("");
+          tableHtml = `<div class="md-table-wrap"><table class="md-table"><tbody>${bodyRows}</tbody></table></div>`;
+        }
+
+        return prefix + tableHtml;
+      }
+    );
+
+    return parsed.replace(/__CODE_BLOCK_(\d+)__/g, (_, idx) => codeBlocks[Number(idx)]);
+  }
+
   function renderMarkdown(text) {
     if (!text) return "";
     let html = escapeHtml(text);
@@ -795,6 +883,7 @@
       '<pre><code>$2</code></pre>'
     );
 
+    html = parseMarkdownTable(html);
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
     html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
@@ -810,6 +899,8 @@
       /```(\w*)\n([\s\S]*?)```/g,
       '<pre><code>$2</code></pre>'
     );
+
+    html = parseMarkdownTable(html);
 
     // headings (## and ###)
     html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
