@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-04 | docs | - | `_handoff/handoff_20260304_02_테이블-렌더링-지원.md` 추가 — 세션 요약, 변경 파일, 검증 결과, 다음 세션 재개 포인트 기록 |
 | 2026-03-04 | feat | - | my-session-dashboard `index.html` — markdown table 렌더링 지원 추가(`parseMarkdownTable`), 코드블록 보호/CRLF/정렬 구분선 처리, 테이블 CSS 및 모바일 가로 스크롤 보강 |
 | 2026-03-04 | docs | - | 문서 경로 정리 — `docs/`→`_docs/`, `handoff/`→`_handoff/` 이동 및 `my-session-wrap/_handoff`, `_handoff` 신규 handoff 문서 반영 |
 | 2026-03-04 | docs | - | CLAUDE.md — Handoff 문서 경로 `docs/.../handoff/` → `_docs/.../_handoff/` 수정 (폴더명 변경 방침 동기화) |
