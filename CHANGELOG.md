@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-04 | docs | - | 문서 경로 정리 — `docs/`→`_docs/`, `handoff/`→`_handoff/` 이동 및 `my-session-wrap/_handoff`, `_handoff` 신규 handoff 문서 반영 |
 | 2026-03-04 | docs | - | CLAUDE.md — Handoff 문서 경로 `docs/.../handoff/` → `_docs/.../_handoff/` 수정 (폴더명 변경 방침 동기화) |
 | 2026-03-04 | docs | - | README.md — `handoff/` → `_handoff/` 경로 참조 2건 수정 (폴더명 변경 방침 동기화) |
 | 2026-03-04 | fix | my-session-wrap | `SKILL.md`, `check-handoff.js`, `next-handoff.sh`, `continue.md` — `handoff/` → `_handoff/` 경로 변경 반영 (폴더명 변경 방침 동기화) |
