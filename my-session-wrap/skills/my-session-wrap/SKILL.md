@@ -7,7 +7,7 @@ description: "Session wrap-up: saves a structured handoff document and creates a
 
 세션 마무리 시 실행하는 경량 워크플로우.
 
-1. **컨텍스트 복원** — `handoff/handoff_YYYYMMDD_01_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
+1. **컨텍스트 복원** — `_handoff/handoff_YYYYMMDD_01_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
 2. **변경사항 반영** — (git 있을 시) commit으로 작업 이력 기록
 
 ## 실행 흐름
@@ -87,7 +87,7 @@ cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 
 ```bash
 bash -c '
-HANDOFF_DIR="handoff"
+HANDOFF_DIR="_handoff"
 SUMMARY="<요약>"
 DATE=$(date +%Y%m%d)
 mkdir -p "$HANDOFF_DIR"
@@ -106,7 +106,7 @@ echo "$NEW_FILE"
 ```
 
 - `<요약>` 자리에 실제 요약어를 채워 실행 (예: `SUMMARY="Junction자동화-dotfiles통합완료"`)
-- stdout으로 출력된 경로(예: `handoff/handoff_20260225_01_출력경로변경.md`)를 Write 도구의 대상으로 사용
+- stdout으로 출력된 경로(예: `_handoff/handoff_20260225_01_출력경로변경.md`)를 Write 도구의 대상으로 사용
 - **exit 1 시**: 사용자에게 오류 보고 후 중단. 직접 파일명을 결정하거나 기존 파일에 쓰는 것은 절대 금지
 
 ### 2-3. handoff 파일 작성
@@ -151,7 +151,7 @@ git commit -m "docs(<scope>): <한 줄 요약>"
 # 복수 관심사인 경우 위 과정을 반복
 ```
 
-> **handoff 파일은 커밋하지 않는다.** `handoff/`는 `.gitignore`에 등록된 세션 메타데이터이므로 git이 추적하지 않는다.
+> **handoff 파일은 커밋하지 않는다.** `_handoff/`는 `.gitignore`에 등록된 세션 메타데이터이므로 git이 추적하지 않는다.
 
 ---
 

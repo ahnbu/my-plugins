@@ -13,7 +13,7 @@ process.stdin.on("end", () => {
     const { cwd } = data;
     if (!cwd) return;
 
-    const handoffDir = path.join(cwd, "handoff");
+    const handoffDir = path.join(cwd, "_handoff");
     if (!fs.existsSync(handoffDir)) return;
 
     const files = fs.readdirSync(handoffDir)

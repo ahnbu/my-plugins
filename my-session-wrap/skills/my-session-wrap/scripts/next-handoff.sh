@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # next-handoff.sh — 다음 handoff 파일 경로를 생성하고 stdout으로 출력
 # Usage: bash next-handoff.sh [HANDOFF_DIR] [요약]
-#   HANDOFF_DIR defaults to "handoff"
+#   HANDOFF_DIR defaults to "_handoff"
 #   요약: 세션 작업 한줄요약 (미제공 시 HHMM 사용)
 
-HANDOFF_DIR="${1:-handoff}"
+HANDOFF_DIR="${1:-_handoff}"
 SUMMARY="${2:-}"
 DATE=$(date +%Y%m%d)
 mkdir -p "$HANDOFF_DIR"

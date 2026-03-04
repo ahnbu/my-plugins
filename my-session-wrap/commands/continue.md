@@ -10,7 +10,7 @@ plugin: my-session-wrap
 
 ## 실행 흐름
 
-1. `handoff/handoff_*.md` Glob으로 검색 → 파일명 기준 최신순 정렬
+1. `_handoff/handoff_*.md` Glob으로 검색 → 파일명 기준 최신순 정렬
 2. 당일 파일이 2개 이상이면 AskUserQuestion으로 선택, 아니면 최신 1개 자동 선택
 3. 선택된 handoff를 Read로 읽기
 4. 요약 출력:

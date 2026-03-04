@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-04 | fix | my-session-wrap | `SKILL.md`, `check-handoff.js`, `next-handoff.sh`, `continue.md` — `handoff/` → `_handoff/` 경로 변경 반영 (폴더명 변경 방침 동기화) |
 | 2026-03-04 | fix | my-session-wrap 2.6.1 | inject-plugin-guidelines.js — EEXIST 워크어라운드 분기 제거, 정식 배포 절차만 출력하도록 간소화 |
 | 2026-03-04 | docs | - | CLAUDE.md — EEXIST 버그 워크어라운드 섹션 삭제 (버그 해결, 정식 절차 복원); 백업 _docs/공통/ 보관 |
 | 2026-03-03 | docs | - | README.md — 마켓플레이스 등록 섹션 추가 (GitHub 레포·로컬 경로 등록, 플러그인 설치 명령어) |
