@@ -71,15 +71,22 @@ git diff --name-only HEAD 2>/dev/null; git diff --name-only --cached 2>/dev/null
 
 ### 2-1. 세션 ID 획득 (절대 생략 불가)
 
-SessionStart hook(`capture-session-id.js`)이 세션 시작 시 `.claude/.current-session-id` 파일에 세션 ID를 기록한다.
+SessionStart hook(`capture-session-id.js`)이 세션 시작 시 세션 ID를 두 곳에 기록한다:
+- **1차**: `$CLAUDE_SESSION_ID` 환경변수 (세션별 독립 — 멀티세션 안전)
+- **2차**: `.claude/.current-session-id` 파일 (fallback)
+
+아래 순서로 획득하라:
 
 ```bash
+# 1차: 환경변수 (멀티세션 안전)
+echo "$CLAUDE_SESSION_ID"
+# 비어있으면 2차: 파일
 cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 ```
 
-- 파일에서 읽은 값을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
+- 획득한 값을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
 - 이 세션 ID로 `~/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` 조회하여 검증 가능
-- 파일이 없거나 비어있으면 `세션 ID: (획득 실패)` 로 기재하고 사용자에게 안내
+- 둘 다 비어있으면 `세션 ID: (획득 실패)` 로 기재하고 사용자에게 안내
 
 ### 2-2. 파일 경로 생성 (절대 생략 불가)
 

@@ -12,6 +12,7 @@
 |------|------|------|-----------|
 | 2026-03-05 | docs | - | `my-session-dashboard` — 계획 문서 추가 (`20260305_세션대시보드_경로복사_계획.md`): 파일 경로 복사·문서전체복사·헤더 레이아웃 개선 실행 결과 포함 |
 | 2026-03-05 | feat | my-session-dashboard 1.2.0 | `build.js` — `processSession`·`parsePlan` metadata에 `filePath`(절대경로) 추가. `index.html` — 헤더 레이아웃 재배치(`[검색][필터][통계]`), detail-header에 파일 경로 + 경로 복사 버튼 추가, Plan h2 행에 `문서전체복사` 버튼 배치, 복사 버튼 accent 색상 시각화 + 토스트 알림 |
+| 2026-03-05 | fix | my-session-wrap 2.7.2 | `my-session-wrap` capture-session-id.js — CLAUDE_ENV_FILE 기반 세션 ID 기록 추가 (1차: 환경변수, 2차: 파일 fallback). SKILL.md 세션 ID 획득 순서 업데이트. 멀티세션 충돌 해결 |
 | 2026-03-05 | fix | my-session-wrap 2.7.1 | `my-session-wrap` capture-session-id.js — CLAUDE_ENV_FILE 가용성 확인용 디버그 로깅 추가 (`~/session-id-debug.log`). 멀티세션 충돌 대책 Phase 1 검증용 임시 코드 |
 | 2026-03-05 | fix | - | `my-session-wrap` SKILL.md Step 2-2 — `next-handoff.sh` 경로를 `$(dirname "$0")` 에서 bash fallback(로컬 dev → 캐시 순 탐색)으로 교체. SKILL.md는 마크다운 프롬프트이므로 `$0` 미작동, AI가 스크립트를 우회하여 날짜 오류 발생하던 문제 해결 |
 | 2026-03-05 | feat | my-session-wrap 2.7.0 | `/continue` — Session ID(UUID v4) 감지 분기 추가: 입력에 UUID가 있으면 `~/.claude/projects/*/{id}.jsonl`을 직접 탐색하여 컨텍스트 복원(경로 A), 없으면 기존 handoff 흐름(경로 B) 유지. `allowed-tools`에 `Grep` 추가 |
