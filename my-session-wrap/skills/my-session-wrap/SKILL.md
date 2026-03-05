@@ -124,12 +124,23 @@ handoff 파일 저장 후 완료.
 
 #### 3-1. CHANGELOG.md 업데이트 (커밋 전 필수)
 
+Step 2-2에서 `next-handoff.sh`가 반환한 handoff 절대경로에서 ProjectRoot를 역산한다:
+
+```
+handoff 경로 예: /d/project/_handoff/handoff_xxx.md
+                  └─ _handoff/ 의 부모 = ProjectRoot = /d/project
+→ CHANGELOG.md 경로: <ProjectRoot>/CHANGELOG.md
+```
+
 ```bash
-ls CHANGELOG.md 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
+# HANDOFF_PATH = Step 2-2에서 stdout으로 받은 절대경로
+PROJECT_ROOT="$(dirname "$(dirname "$HANDOFF_PATH")")"
+ls "$PROJECT_ROOT/CHANGELOG.md" 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
 ```
 
 - **EXISTS**: 기존 파일의 양식을 확인한 후 이번 세션 변경사항을 동일 양식으로 추가. Scope는 실제 변경 범위로 작성 (포괄값 금지).
-- **NOT_FOUND**: `C:\Users\ahnbu\CHANGELOG_TEMPLATE.md`를 Read하여 형식을 확인한 후 `CHANGELOG.md`를 새로 생성.
+- **NOT_FOUND**: `C:\Users\ahnbu\CHANGELOG_TEMPLATE.md`를 Read하여 형식을 확인한 후 `<ProjectRoot>/CHANGELOG.md`로 새로 생성.
+- **CWD 상대경로(`ls CHANGELOG.md`)로 탐색 금지** — 실행 위치에 따라 잘못된 파일을 찾거나 서브폴더에 새 파일을 생성하는 문제가 발생한다.
 
 #### 3-2. 커밋 생성
 
