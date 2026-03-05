@@ -71,16 +71,14 @@ git diff --name-only HEAD 2>/dev/null; git diff --name-only --cached 2>/dev/null
 
 ### 2-1. 세션 ID 획득 (절대 생략 불가)
 
-SessionStart hook(`capture-session-id.js`)이 세션 시작 시 세션 ID를 두 곳에 기록한다:
-- **1차**: `$CLAUDE_SESSION_ID` 환경변수 (세션별 독립 — 멀티세션 안전)
-- **2차**: `.claude/.current-session-id` 파일 (fallback)
-
 아래 순서로 획득하라:
 
 ```bash
-# 1차: 환경변수 (멀티세션 안전)
-echo "$CLAUDE_SESSION_ID"
-# 비어있으면 2차: 파일
+# 1차: JSONL 최신 파일명 (현재 세션의 transcript = 가장 최근 수정된 JSONL)
+ENCODED=$(pwd | sed 's|\\|/|g' | sed 's|/|--|g' | sed 's|^C:||' | sed 's|^--|C--|')
+ls -t ~/.claude/projects/${ENCODED}/*.jsonl 2>/dev/null | head -1 | xargs -I{} basename {} .jsonl
+
+# 비어있으면 2차: 파일 fallback
 cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 ```
 
