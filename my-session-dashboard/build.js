@@ -203,6 +203,7 @@ function normalizeProjectPath(p) {
 
 function processSession(filePath) {
   const entries = parseJSONL(filePath);
+  const absFilePath = path.resolve(filePath);
   if (entries.length === 0) return null;
 
   const sessionId = path.basename(filePath, ".jsonl");
@@ -313,6 +314,7 @@ function processSession(filePath) {
     toolNames,
     firstMessage: displayFirstMsg.substring(0, 200),
     projectDisplay: project,
+    filePath: absFilePath,
   };
 
   return { metadata, messages: mergedMessages };
@@ -327,6 +329,7 @@ function findCwd(entries) {
 
 // ── Plan 파싱 ──
 function parsePlan(filePath) {
+  const absFilePath = path.resolve(filePath);
   const slug = path.basename(filePath, ".md");
   const stat = fs.statSync(filePath);
   const rawText = fs.readFileSync(filePath, "utf8");
@@ -390,6 +393,7 @@ function parsePlan(filePath) {
       totalInputTokens: 0,
       totalOutputTokens: 0,
       toolNames: {},
+      filePath: absFilePath,
     },
     content: rawText,
   };
