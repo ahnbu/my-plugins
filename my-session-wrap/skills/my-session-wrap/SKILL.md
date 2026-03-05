@@ -85,28 +85,22 @@ cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 
 세션 작업 내용을 3-4단어로 요약한다 (예: `출력경로변경`, `세션ID-훅수정`).
 
+`scripts/next-handoff.sh`를 사용하여 경로를 결정한다:
+
 ```bash
-bash -c '
-HANDOFF_DIR="_handoff"
-SUMMARY="<요약>"
-DATE=$(date +%Y%m%d)
-mkdir -p "$HANDOFF_DIR"
-MAX_SEQ=0
-for f in "$HANDOFF_DIR"/handoff_${DATE}_[0-9][0-9]_*.md; do
-  [ -f "$f" ] || continue
-  seq=$(basename "$f" | sed "s/^handoff_[0-9]\{8\}_\([0-9]\{2\}\)_.*/\1/")
-  seq=$((10#$seq))
-  [ "$seq" -gt "$MAX_SEQ" ] && MAX_SEQ=$seq
-done
-SEQ=$(printf "%02d" $((MAX_SEQ + 1)))
-NEW_FILE="$HANDOFF_DIR/handoff_${DATE}_${SEQ}_${SUMMARY}.md"
-[ -f "$NEW_FILE" ] && { echo "ERROR: $NEW_FILE already exists" >&2; exit 1; }
-echo "$NEW_FILE"
-'
+bash "$(dirname "$0")/scripts/next-handoff.sh" "" "<요약>"
 ```
 
-- `<요약>` 자리에 실제 요약어를 채워 실행 (예: `SUMMARY="Junction자동화-dotfiles통합완료"`)
-- stdout으로 출력된 경로(예: `_handoff/handoff_20260225_01_출력경로변경.md`)를 Write 도구의 대상으로 사용
+스크립트는 ProjectRoot를 다음 우선순위로 자동 결정한다:
+1. 첫 번째 인자 (명시적 경로) — 비워두면 자동 탐색
+2. `git rev-parse --show-toplevel`
+3. 마커 스캔 — CWD 포함 상위 최대 3단계, `CHANGELOG.md`·`AGENTS.md`·`CLAUDE.md`·`GEMINI.md` 중 **보유 개수 최다 폴더** (동점 시 가장 가까운 조상)
+4. 미탐지 시 오류 종료 + git root 후보 안내
+
+handoff는 항상 `<ProjectRoot>/_handoff/handoff_YYYYMMDD_NN_요약.md`에 저장된다.
+
+- `<요약>` 자리에 실제 요약어를 채워 실행 (예: `"Junction자동화-dotfiles통합완료"`)
+- stdout으로 출력된 절대경로를 Write 도구의 대상으로 사용
 - **exit 1 시**: 사용자에게 오류 보고 후 중단. 직접 파일명을 결정하거나 기존 파일에 쓰는 것은 절대 금지
 
 ### 2-3. handoff 파일 작성

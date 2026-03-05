@@ -10,6 +10,8 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-05 | fix | - | `my-session-wrap` Claude Code 버전 ProjectRoot 판정 추가 — `next-handoff.sh`에 git root → 마커 스캔(3단계) → throw 로직 구현, SKILL.md Step 2-2 인라인 코드를 스크립트 위임으로 교체 |
+| 2026-03-05 | fix | - | `wrap` 스킬 ProjectRoot 판정 로직 추가 — `next-handoff.ps1`에 `-ProjectRoot` 파라미터 및 자동 탐색(git root → 마커 스캔 3단계 → throw) 구현, handoff 경로 절대경로 강제, `-Verbose` 옵션 추가. `SKILL.md` 경로 결정 4단계 우선순위 문서화. Codex·Gemini wrap SKILL.md 및 CHANGELOG.md 동기화 |
 | 2026-03-04 | docs | - | `_handoff/handoff_20260304_02_테이블-렌더링-지원.md` 추가 — 세션 요약, 변경 파일, 검증 결과, 다음 세션 재개 포인트 기록 |
 | 2026-03-04 | feat | - | my-session-dashboard `index.html` — markdown table 렌더링 지원 추가(`parseMarkdownTable`), 코드블록 보호/CRLF/정렬 구분선 처리, 테이블 CSS 및 모바일 가로 스크롤 보강 |
 | 2026-03-04 | docs | - | 문서 경로 정리 — `docs/`→`_docs/`, `handoff/`→`_handoff/` 이동 및 `my-session-wrap/_handoff`, `_handoff` 신규 handoff 문서 반영 |
