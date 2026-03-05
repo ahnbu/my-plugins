@@ -88,7 +88,8 @@ cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 `scripts/next-handoff.sh`를 사용하여 경로를 결정한다:
 
 ```bash
-bash "$(dirname "$0")/scripts/next-handoff.sh" "" "<요약>"
+SCRIPT=$(ls "$HOME/.claude/my-claude-plugins/my-session-wrap/skills/my-session-wrap/scripts/next-handoff.sh" "$HOME/.claude/plugins/cache/my-claude-plugins/my-session-wrap"/*/skills/my-session-wrap/scripts/next-handoff.sh 2>/dev/null | head -1)
+bash "$SCRIPT" "" "<요약>"
 ```
 
 스크립트는 ProjectRoot를 다음 우선순위로 자동 결정한다:
