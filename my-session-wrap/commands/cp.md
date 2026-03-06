@@ -1,5 +1,5 @@
 ---
-description: 경량 commit-push — 변경사항 분석 → 커밋 → 푸쉬
+description: 경량 commit-push — 변경사항 분석 → 커밋 → 푸쉬 (remote 있을 때만)
 allowed-tools: Bash(git *), Read, Edit, Glob
 plugin: my-session-wrap
 ---
@@ -10,8 +10,8 @@ plugin: my-session-wrap
 
 ## Usage
 
-- `/cp` — 변경사항 분석 후 자동 커밋메시지 생성, commit + push
-- `/cp [message]` — 지정된 메시지로 commit + push
+- `/cp` — 변경사항 분석 후 자동 커밋메시지 생성, commit (+ push if remote exists)
+- `/cp [message]` — 지정된 메시지로 commit (+ push if remote exists)
 
 ## Execution Steps
 
@@ -59,14 +59,22 @@ type(scope): 요약
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
 )"
-git push
 ```
 
-push 실패 시 에러 메시지를 사용자에게 보여주고 중단.
+커밋 후 `git remote` 실행:
+- remote가 **있으면**: `git push` 실행. 실패 시 에러 메시지를 보여주고 중단.
+- remote가 **없으면**: push를 건너뛰고 "로컬 전용 레포 — push 생략" 안내.
 
 ### Step 6: 결과 출력
 
+remote가 있는 경우:
 ```
 ✓ [커밋 해시] type(scope): 요약
 ✓ pushed to origin/[branch]
+```
+
+remote가 없는 경우:
+```
+✓ [커밋 해시] type(scope): 요약
+ℹ 로컬 전용 레포 — push 생략
 ```
