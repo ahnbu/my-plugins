@@ -130,7 +130,7 @@ handoff 파일 저장 후 완료.
 
 ### Git 있는 경우
 
-#### 3-1. CHANGELOG.md 업데이트 (커밋 전 필수)
+#### 3-1. CHANGELOG.md 위치 확인
 
 Step 2-2에서 `next-handoff.sh`가 반환한 handoff 절대경로에서 ProjectRoot를 역산한다:
 
@@ -146,23 +146,36 @@ PROJECT_ROOT="$(dirname "$(dirname "$HANDOFF_PATH")")"
 ls "$PROJECT_ROOT/CHANGELOG.md" 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"
 ```
 
-- **EXISTS**: 기존 파일의 양식을 확인한 후 이번 세션 변경사항을 동일 양식으로 추가. Scope는 실제 변경 범위로 작성 (포괄값 금지).
+- **EXISTS**: 기존 파일의 양식을 Read로 확인해 둔다.
 - **NOT_FOUND**: `C:\Users\ahnbu\CHANGELOG_TEMPLATE.md`를 Read하여 형식을 확인한 후 `<ProjectRoot>/CHANGELOG.md`로 새로 생성.
 - **CWD 상대경로(`ls CHANGELOG.md`)로 탐색 금지** — 실행 위치에 따라 잘못된 파일을 찾거나 서브폴더에 새 파일을 생성하는 문제가 발생한다.
 
-#### 3-2. 커밋 생성
+#### 3-2. 관심사별 CHANGELOG 추가 + 커밋 (반복)
 
-미커밋 작업물을 **관심사별로 분리하여 커밋**한다. 각 커밋에 CHANGELOG를 포함한다.
+미커밋 작업물을 관심사별로 분류한 뒤, **관심사 1건마다 아래 사이클을 반복**한다:
+
+1. CHANGELOG.md에 **해당 관심사 1줄만** 추가 (Edit)
+2. `git add <해당 관심사 작업물> CHANGELOG.md`
+3. `git commit`
+
+> ⚠️ **CHANGELOG를 한꺼번에 여러 줄 추가한 뒤 커밋을 분리하면 pre-commit hook에 차단된다.**
+> 반드시 "1줄 추가 → 커밋" 사이클을 관심사 수만큼 반복하라.
+
+```bash
+# ── 관심사 A ──
+# 1) CHANGELOG에 관심사 A 항목 1줄 추가 (Edit 도구)
+git add <관심사A 파일들> CHANGELOG.md
+git commit -m "<type>(<scope>): <한 줄 요약>"
+
+# ── 관심사 B ──
+# 1) CHANGELOG에 관심사 B 항목 1줄 추가 (Edit 도구)
+git add <관심사B 파일들> CHANGELOG.md
+git commit -m "<type>(<scope>): <한 줄 요약>"
+```
 
 - 같은 관심사(같은 맥락·목적)의 파일은 하나의 커밋으로 묶는다.
 - 맥락이 다른 파일은 별도 커밋으로 분리한다.
-
-```bash
-git add <작업물 파일들>
-git add CHANGELOG.md
-git commit -m "docs(<scope>): <한 줄 요약>"
-# 복수 관심사인 경우 위 과정을 반복
-```
+- Scope는 실제 변경 범위로 작성 (포괄값 금지).
 
 > **handoff 파일은 커밋하지 않는다.** `_handoff/`는 `.gitignore`에 등록된 세션 메타데이터이므로 git이 추적하지 않는다.
 
