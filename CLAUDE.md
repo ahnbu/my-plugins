@@ -87,16 +87,6 @@ YYYYMMDD_이슈명.md
 - 영어 제목 금지. 기술 용어는 혼용 허용 (예: `20260224_세션ID테스트_2차_Node전환.md`)
 - 불필요한 태그 접미어 금지 (예: `_claude`, `_v1` 등은 버전관리 용도 외 사용 금지)
 
-### Handoff 문서
-
-```
-_docs/<plugin-name>/_handoff/handoff_YYYYMMDD_NN_한줄요약.md
-```
-
-- `NN`: 당일 순번 01부터
-- 한줄요약: 한국어, 하이픈(`-`) 구분 허용
-- 반드시 `_handoff/` 서브폴더에 위치
-
 ## Git Commit 규칙
 
 ### 형식
