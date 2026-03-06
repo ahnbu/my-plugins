@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-06 | docs | - | 미추적 handoff 파일 7개 추가 (`20260225_09~12`, `20260302_01`, `20260305_04`, `20260306_01`) + `20260306_문서_handoff_경로통일_계획.md` → `_docs/공통/`으로 이동 |
 | 2026-03-06 | docs | - | `my-session-dashboard` — 플러그인 독립 전환 계획 문서 추가 (`20260306_플러그인_독립모듈_전환_계획.md`): 전체 플러그인 hook 분석, 독립 전환 가능 판단, 7단계 실행 계획 포함 |
 | 2026-03-06 | docs | - | `my-session-dashboard` — 세션 대시보드 로컬 서버 구현 계획 문서 추가 (`20260306_세션대시보드_로컬서버_계획.md`): serve.js 구현 이력, 버그 발견·수정 과정, 설계 진화 3단계 포함 |
 | 2026-03-06 | feat | my-session-dashboard 1.3.0 | `serve.js` 신규 — 로컬 HTTP 서버 + SSE 빌드 오케스트레이션. `session.bat` 신규. `generate-icon.js` + `dashboard.ico` (32x32 ICO, 순수 Buffer). `세션대시보드.lnk` 신규 (dashboard.ico 포함). `SKILL.md` 단순화 (4단계→2단계, node serve.js 호출). serve.js 버그 수정: output 경로 불일치(L17 `../` 추가), IPv4 바인딩 문제(`server.listen(0)` 전환), exec URL 모호성 (`start "" "url"`) |
