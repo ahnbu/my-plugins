@@ -10,6 +10,8 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-06 | chore | - | 산재 문서/_handoff 파일을 루트 `_docs/`·`_handoff/`로 통일 — `_docs/my-session-wrap/_handoff/` 5개→루트 `_handoff/`, 플러그인 내부 문서 3개→`_docs/` 이동, `.current-session-id` 임시파일 삭제 |
+| 2026-03-06 | docs | - | 프로젝트 CLAUDE.md `### Handoff 문서` 섹션 삭제 — 글로벌 CLAUDE.md(L50)에 동일 규칙 있으므로 중복 제거 |
 | 2026-03-05 | docs | - | `_handoff/` + `_docs/` 파일명 일괄 규격 적용 — 하이픈 구분에서 언더스코어 구분으로 35개 파일 리네임 |
 | 2026-03-05 | docs | - | 미추적 문서 3건 정리 — `_docs/my-session-wrap/20260305_세션ID멀티세션충돌_대책_계획.md`, `_docs/my-session-wrap/task_plan.md`, `_handoff/handoff_20260305_01_대시보드-경로복사-복사버튼-UI개선.md` 추가 |
 | 2026-03-05 | refactor | my-session-wrap 2.8.1 | `capture-session-id.js` SessionStart 파일 기록 분기 제거 (dead code — UPS hook이 항상 먼저 발동하므로 파일 fallback 에지케이스 없음). `hooks.json` SessionStart에서 capture-session-id hook 엔트리 제거. `fs`/`path` import 정리 |
