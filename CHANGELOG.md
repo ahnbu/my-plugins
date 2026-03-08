@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-08 | fix | - | `my-session-dashboard` — 검색 AND 지원: 공백으로 구분된 다중 단어 입력 시 모든 단어가 포함된 세션만 반환 |
 | 2026-03-08 | fix | - | `my-session-dashboard` — 세션 검색에 대화 내용(messages) 포함 확장 + 파일 경로 복사 버튼 백슬래시 누락 수정 (data-path 속성 방식으로 전환) |
 | 2026-03-07 | feat | - | `taskmaster-cli` 플러그인 신규 추가 — task-master-start/stop, tm-done/list/next/parse-prd/progress/show 8개 스킬 |
 | 2026-03-07 | feat | - | `my-session-wrap` SKILL.md — `/wrap` 스킬 멀티 레포 그룹핑 지원: Step 1 레포 루트 수집, Step 3 레포별 CHANGELOG·커밋 순회 처리 추가 |

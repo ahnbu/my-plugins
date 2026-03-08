@@ -743,7 +743,7 @@
       // 프로젝트 필터 (세션에만 적용)
       if (activeFilter !== "all" && sType === "session" && s.projectDisplay !== activeFilter) return false;
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
+        const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
         const fields = [
           s.title,
           s.firstMessage,
@@ -765,7 +765,8 @@
           fields.push(texts.substring(0, 3000));
         }
         const searchable = fields.join(" ").toLowerCase();
-        if (!searchable.includes(q)) return false;
+        // 공백으로 분리된 각 단어가 모두 포함되어야 함 (AND 검색)
+        if (!terms.every(t => searchable.includes(t))) return false;
       }
       return true;
     });
