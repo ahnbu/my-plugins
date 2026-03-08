@@ -39,9 +39,137 @@
   /* Layout: header-row1, filters-row, content */
   .app {
     display: grid;
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: 380px 1fr 380px;
     grid-template-rows: auto auto auto 1fr;
     height: 100vh;
+    transition: grid-template-columns 0.2s ease;
+  }
+
+  .app.toc-collapsed {
+    grid-template-columns: 380px 1fr 0px;
+  }
+
+  /* TOC panel — mirrors sidebar */
+  .toc-panel {
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    grid-row: 4;
+  }
+
+  .toc-panel.hidden {
+    display: none;
+  }
+
+  .toc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    flex-shrink: 0;
+  }
+
+  .toc-header span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .toc-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 2px;
+    flex-shrink: 0;
+  }
+
+  .toc-toggle-btn:hover {
+    color: var(--text);
+  }
+
+  .toc-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .toc-item:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .toc-item-num {
+    color: var(--text-dim);
+    flex-shrink: 0;
+    font-size: 11px;
+    padding-top: 2px;
+    min-width: 18px;
+    text-align: right;
+  }
+
+  .toc-item-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .toc-item-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+  }
+
+  .toc-item:hover .toc-item-text {
+    color: var(--text);
+  }
+
+  /* TOC collapsed: show a thin re-open tab */
+  .toc-reopen {
+    display: none;
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    padding: 8px 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 11px;
+    writing-mode: vertical-lr;
+    z-index: 10;
+  }
+
+  .toc-reopen:hover {
+    color: var(--text);
+    background: var(--bg-secondary);
+  }
+
+  .app.toc-collapsed .toc-reopen {
+    display: block;
   }
 
   /* Header */
@@ -629,6 +757,16 @@
       <div>세션을 선택하면 대화 내용을 볼 수 있습니다</div>
     </div>
   </div>
+
+  <div class="toc-panel hidden" id="tocPanel">
+    <div class="toc-header">
+      <span>&#x2261; 목차</span>
+      <button class="toc-toggle-btn" onclick="toggleToc()" title="목차 접기">&#x00D7;</button>
+    </div>
+    <div class="toc-list" id="tocList"></div>
+  </div>
+
+  <button class="toc-reopen" id="tocReopen" onclick="toggleToc()" title="목차 펼치기">목차</button>
 </div>
 
 <!-- __SESSION_DATA__ -->
@@ -875,7 +1013,7 @@
     const sessionFilePath = meta.filePath || "";
     let html = `
       <div class="detail-header">
-        <h2>${escapeHtml(meta.title)}</h2>
+        <h2>${escapeHtml(meta.title)} <button class="copy-doc-btn" onclick="copyDoc(this, '${escapeAttr(meta.sessionId)}')">문서 전체 복사</button></h2>
         <div class="detail-meta">
           <span><span class="label">프로젝트:</span> ${escapeHtml(meta.projectDisplay || "-")}</span>
           <span><span class="label">브랜치:</span> ${escapeHtml(meta.gitBranch || "-")}</span>
@@ -891,6 +1029,24 @@
       <div class="messages">
     `;
 
+    const tocItems = [];
+    let msgIndex = 0;
+
+    // 목차 그룹핑용: user 사이의 assistant 메시지를 그룹으로 모아 대표 1개만 표시
+    let assistantGroup = []; // { id, text } 수집
+    const flushAssistantGroup = () => {
+      if (assistantGroup.length === 0) return;
+      // 가장 긴 텍스트를 대표로 선택
+      const rep = assistantGroup.reduce((best, cur) =>
+        cur.text.length > best.text.length ? cur : best
+      );
+      const firstLine = rep.text.replace(/^#+\s*/, "").split("\n")[0].trim().substring(0, 60);
+      if (firstLine) {
+        tocItems.push({ id: rep.id, icon: "🤖", text: firstLine, num: parseInt(rep.id.replace("msg-", "")) + 1 });
+      }
+      assistantGroup = [];
+    };
+
     for (const msg of messages) {
       const time = msg.timestamp
         ? new Date(msg.timestamp).toLocaleTimeString("ko-KR", {
@@ -899,14 +1055,34 @@
         : "";
 
       const roleLabel = ROLE_LABELS[msg.role] || msg.role;
+      const msgId = `msg-${msgIndex}`;
+
+      // 목차 항목 수집: user는 항상, assistant는 user 간 그룹에서 대표 1개만
+      if (msg.role === "user") {
+        flushAssistantGroup();
+        if (msg.text) {
+          const firstLine = msg.text.replace(/^#+\s*/, "").split("\n")[0].trim().substring(0, 60);
+          if (firstLine) {
+            tocItems.push({ id: msgId, icon: "👤", text: firstLine, num: msgIndex + 1 });
+          }
+        }
+      } else if (msg.role === "assistant" && msg.text) {
+        // [thinking] 블록 및 너무 짧은 전환 문구 제외
+        const isThinking = msg.text.startsWith("[thinking]");
+        const isTooShort = msg.text.trim().length < 10;
+        if (!isThinking && !isTooShort) {
+          assistantGroup.push({ id: msgId, text: msg.text });
+        }
+      }
 
       html += `
-        <div class="message ${msg.role}">
+        <div class="message ${msg.role}" id="${msgId}">
           <div class="message-header">
             <span class="role-badge ${msg.role}">${roleLabel}</span>
             <span class="message-time">${time}</span>
           </div>
       `;
+      msgIndex++;
 
       if (msg.text) {
         html += `<div class="message-body">${renderMarkdown(msg.text)}</div>`;
@@ -931,9 +1107,15 @@
       html += "</div>";
     }
 
+    // 루프 종료 후 마지막 assistant 그룹 플러시
+    flushAssistantGroup();
+
     html += "</div>";
     mainEl.innerHTML = html;
     mainEl.querySelector(".messages")?.scrollTo(0, 0);
+
+    // 목차 패널 갱신 (세션 전환 시 항상 펼침)
+    buildToc(tocItems);
   };
 
   function showPlanDetail(meta) {
@@ -971,7 +1153,77 @@
     `;
     mainEl.innerHTML = html;
     mainEl.scrollTo(0, 0);
+
+    // 플랜 목차: 원본 마크다운에서 heading 추출
+    buildPlanToc(typeof content === "string" ? content : "");
   }
+
+  function buildToc(items) {
+    const panel = document.getElementById("tocPanel");
+    const list = document.getElementById("tocList");
+    const app = document.querySelector(".app");
+
+    if (!items || items.length === 0) {
+      hideToc();
+      return;
+    }
+
+    list.innerHTML = items.map((item) => {
+      const indent = item.level === 3 ? ' style="padding-left:28px"' : "";
+      return `<div class="toc-item" onclick="jumpToMessage('${item.id}')"${indent}>
+        <span class="toc-item-num">${item.num}</span>
+        <span class="toc-item-icon">${item.icon}</span>
+        <span class="toc-item-text">${escapeHtml(item.text)}</span>
+      </div>`;
+    }).join("");
+
+    // 항상 펼침 상태로 복원
+    panel.classList.remove("hidden");
+    app.classList.remove("toc-collapsed");
+  }
+
+  function buildPlanToc(markdownText) {
+    if (!markdownText) { hideToc(); return; }
+
+    // 코드블록 내부 heading은 무시
+    const stripped = markdownText.replace(/```[\s\S]*?```/g, "");
+
+    let idx = 0;
+    const items = [];
+    stripped.split("\n").forEach((line) => {
+      const m2 = line.match(/^## (.+)/);
+      const m3 = line.match(/^### (.+)/);
+      const m1 = line.match(/^# (.+)/);
+      if (m2 || m3 || m1) {
+        const level = m1 ? 1 : m2 ? 2 : 3;
+        const text = (m1 || m2 || m3)[1].trim();
+        const icon = level === 1 ? "📄" : level === 2 ? "📑" : "📌";
+        items.push({ id: `ph-${idx}`, icon, text, num: idx + 1, level });
+        idx++;
+      }
+    });
+
+    buildToc(items);
+  }
+
+  function hideToc() {
+    const panel = document.getElementById("tocPanel");
+    const app = document.querySelector(".app");
+    panel.classList.add("hidden");
+    app.classList.remove("toc-collapsed");
+  }
+
+  window.toggleToc = function() {
+    const app = document.querySelector(".app");
+    app.classList.toggle("toc-collapsed");
+  };
+
+  window.jumpToMessage = function(msgId) {
+    const el = document.getElementById(msgId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   window.toggleTool = function(el) {
     const arrow = el.querySelector(".tool-arrow");
@@ -1090,10 +1342,11 @@
 
     html = parseMarkdownTable(html);
 
-    // headings (## and ###)
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h2 style="font-size:20px;margin-top:0">$1</h2>');
+    // headings (## and ###) — id 부여로 앵커 이동 가능
+    let headingIdx = 0;
+    html = html.replace(/^### (.+)$/gm, (_, t) => `<h3 id="ph-${headingIdx++}">${t}</h3>`);
+    html = html.replace(/^## (.+)$/gm, (_, t) => `<h2 id="ph-${headingIdx++}">${t}</h2>`);
+    html = html.replace(/^# (.+)$/gm, (_, t) => `<h2 id="ph-${headingIdx++}" style="font-size:20px;margin-top:0">${t}</h2>`);
 
     // inline
     html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
