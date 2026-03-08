@@ -1434,7 +1434,20 @@
 
   window.copyDoc = function(btn, sessionId) {
     const content = loadConversation(sessionId);
-    const text = typeof content === "string" ? content : JSON.stringify(content, null, 2);
+    let text;
+    if (typeof content === "string") {
+      text = content;
+    } else if (Array.isArray(content)) {
+      text = content
+        .filter(m => m.text)
+        .map(m => {
+          const role = m.role === "user" ? "User" : "Assistant";
+          return `## ${role}\n\n${m.text}`;
+        })
+        .join("\n\n---\n\n");
+    } else {
+      text = JSON.stringify(content, null, 2);
+    }
     copyToClipboard(text).then(() => {
       btn.textContent = "✓ 복사됨";
       btn.classList.add("copied");
