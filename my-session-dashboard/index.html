@@ -92,6 +92,31 @@
     color: var(--text-dim);
   }
 
+  /* Filter toggle row */
+  .filter-toggle-row {
+    grid-column: 1 / -1;
+    padding: 4px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .filter-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+
+  .filter-toggle-btn:hover {
+    color: var(--text);
+  }
+
+  .filters.collapsed {
+    display: none !important;
+  }
+
   /* Filters — header 2nd row */
   .filters {
     grid-column: 1 / -1;
@@ -563,6 +588,9 @@
   </div>
   <div class="copy-toast" id="copyToast">복사됨</div>
 
+  <div class="filter-toggle-row" id="filterToggleRow" style="display:none">
+    <button class="filter-toggle-btn" id="filterToggleBtn">▶ 프로젝트 필터 <span id="filterCount"></span></button>
+  </div>
   <div class="filters" id="filters"></div>
 
   <div class="sidebar">
@@ -651,6 +679,10 @@
 
     // 프로젝트 필터 → filters 행에 렌더
     const projContainer = document.getElementById("filters");
+    const toggleRow = document.getElementById("filterToggleRow");
+    const toggleBtn = document.getElementById("filterToggleBtn");
+    const filterCount = document.getElementById("filterCount");
+
     if (projects.length > 1) {
       let projHtml = "";
       for (const p of projects) {
@@ -660,16 +692,44 @@
       projContainer.innerHTML = projHtml;
       projContainer.style.display = "";
 
+      // 토글 행 표시 + 기본 접힘 상태
+      filterCount.textContent = `(${projects.length})`;
+      toggleRow.style.display = "";
+      projContainer.classList.add("collapsed");
+
+      function updateToggleLabel() {
+        const isCollapsed = projContainer.classList.contains("collapsed");
+        const arrow = isCollapsed ? "▶" : "▼";
+        if (isCollapsed && activeFilter !== "all") {
+          const activeBtn = projContainer.querySelector(`[data-filter].active`);
+          const activeName = activeBtn ? activeBtn.textContent : "";
+          toggleBtn.textContent = `${arrow} 프로젝트 필터: ${activeName} `;
+          toggleBtn.appendChild(filterCount);
+        } else {
+          toggleBtn.textContent = `${arrow} 프로젝트 필터 `;
+          toggleBtn.appendChild(filterCount);
+        }
+      }
+
+      toggleBtn.addEventListener("click", () => {
+        projContainer.classList.toggle("collapsed");
+        updateToggleLabel();
+      });
+
       projContainer.addEventListener("click", (e) => {
         const btn = e.target.closest(".filter-btn");
         if (!btn) return;
         projContainer.querySelectorAll("[data-filter]").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         activeFilter = btn.dataset.filter;
+        updateToggleLabel();
         renderSessionList();
       });
+
+      updateToggleLabel();
     } else {
       projContainer.style.display = "none";
+      toggleRow.style.display = "none";
     }
   }
 
@@ -691,12 +751,18 @@
           s.projectDisplay,
           s.gitBranch,
         ];
-        // plan은 content 앞 2000자도 검색 대상에 포함
-        if (sType === "plan") {
-          const content = loadConversation(s.sessionId);
-          if (typeof content === "string") {
-            fields.push(content.substring(0, 2000));
-          }
+        // 세션/plan 모두 대화 내용 검색 대상에 포함
+        const conv = loadConversation(s.sessionId);
+        if (typeof conv === "string") {
+          // plan: markdown content
+          fields.push(conv.substring(0, 2000));
+        } else if (Array.isArray(conv)) {
+          // session: messages 배열에서 텍스트 추출
+          const texts = conv
+            .filter(m => m.text)
+            .map(m => m.text)
+            .join(" ");
+          fields.push(texts.substring(0, 3000));
         }
         const searchable = fields.join(" ").toLowerCase();
         if (!searchable.includes(q)) return false;
@@ -794,7 +860,7 @@
         </div>
         ${sessionFilePath ? `<div class="file-path-row">
           <span class="file-path-label">파일:</span>
-          <span class="file-path-value" title="${escapeAttr(sessionFilePath)}">${escapeHtml(sessionFilePath)}</span><button class="copy-btn" onclick="copyPath(this, '${escapeAttr(sessionFilePath)}')">복사</button>
+          <span class="file-path-value" title="${escapeAttr(sessionFilePath)}">${escapeHtml(sessionFilePath)}</span><button class="copy-btn" data-path="${escapeAttr(sessionFilePath)}" onclick="copyPath(this)">복사</button>
         </div>` : ""}
       </div>
       <div class="messages">
@@ -873,7 +939,7 @@
         </div>
         ${planFilePath ? `<div class="file-path-row">
           <span class="file-path-label">파일:</span>
-          <span class="file-path-value" title="${escapeAttr(planFilePath)}">${escapeHtml(planFilePath)}</span><button class="copy-btn" onclick="copyPath(this, '${escapeAttr(planFilePath)}')">복사</button>
+          <span class="file-path-value" title="${escapeAttr(planFilePath)}">${escapeHtml(planFilePath)}</span><button class="copy-btn" data-path="${escapeAttr(planFilePath)}" onclick="copyPath(this)">복사</button>
         </div>` : ""}
       </div>
       <div class="plan-content">${renderPlanMarkdown(typeof content === "string" ? content : "")}</div>
@@ -1078,7 +1144,8 @@
     setTimeout(() => toast.classList.remove("show"), 1800);
   }
 
-  window.copyPath = function(btn, text) {
+  window.copyPath = function(btn) {
+    const text = btn.dataset.path;
     copyToClipboard(text).then(() => {
       btn.textContent = "✓";
       btn.classList.add("copied");
