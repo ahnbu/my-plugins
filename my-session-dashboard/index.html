@@ -1434,17 +1434,35 @@
 
   window.copyDoc = function(btn, sessionId) {
     const content = loadConversation(sessionId);
+    const meta = sessions.find(s => s.sessionId === sessionId) || {};
     let text;
     if (typeof content === "string") {
       text = content;
     } else if (Array.isArray(content)) {
-      text = content
+      // 메타 헤더
+      const duration = meta.lastTimestamp && meta.timestamp
+        ? formatDuration(new Date(meta.lastTimestamp) - new Date(meta.timestamp))
+        : "-";
+      const tokenStr = formatTokens((meta.totalInputTokens || 0) + (meta.totalOutputTokens || 0));
+      const lines = [
+        `# ${meta.title || sessionId}`,
+        ``,
+        `- **프로젝트:** ${meta.projectDisplay || "-"}`,
+        `- **브랜치:** ${meta.gitBranch || "-"}`,
+        `- **소요시간:** ${duration}`,
+        `- **토큰:** ${tokenStr}`,
+        `- **모델:** ${(meta.models || []).join(", ") || "-"}`,
+      ];
+      if (meta.filePath) lines.push(`- **파일:** ${meta.filePath}`);
+      const header = lines.join("\n");
+      const body = content
         .filter(m => m.text)
         .map(m => {
           const role = m.role === "user" ? "User" : "Assistant";
           return `## ${role}\n\n${m.text}`;
         })
         .join("\n\n---\n\n");
+      text = `${header}\n\n---\n\n${body}`;
     } else {
       text = JSON.stringify(content, null, 2);
     }

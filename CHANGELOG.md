@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-08 | feat | - | `my-session-dashboard` — 문서 전체 복사 시 메타 정보 헤더 포함: 제목·프로젝트·브랜치·소요시간·토큰·모델·파일 경로 |
 | 2026-03-08 | feat | - | `my-session-dashboard` — 세션 상세 헤더에 "문서 전체 복사" 버튼 추가 + `copyDoc` 마크다운 대화 포맷 변환 (`## User`/`## Assistant` + `---` 구분선) |
 | 2026-03-08 | feat | - | `my-session-dashboard` — 목차 패널 assistant 메시지 그룹핑: user 간 assistant 다수 메시지 중 가장 긴 대표 1개만 표시, `[thinking]`·10자 미만 메시지 목차 제외 |
 | 2026-03-08 | fix | - | `my-session-dashboard` — 프로젝트 필터 펼침 시 하단 가림 수정: `grid-template-rows` 4행으로 확장 + `.sidebar`/`.main`에 `grid-row: 4` 명시, `.filters` max-height 40vh + overflow-y auto |
