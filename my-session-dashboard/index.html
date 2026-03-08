@@ -71,17 +71,37 @@
   .search-box {
     flex: 1;
     max-width: 400px;
+    position: relative;
   }
 
   .search-box input {
     width: 100%;
-    padding: 6px 12px;
+    padding: 6px 28px 6px 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
     font-size: 13px;
     outline: none;
+    box-sizing: border-box;
+  }
+
+  .search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+  }
+
+  .search-clear:hover {
+    color: var(--text);
   }
 
   .search-box input:focus {
@@ -582,6 +602,7 @@
   <div class="header">
     <div class="search-box">
       <input type="text" id="search" placeholder="세션 검색... (제목, 키워드, 내용)">
+      <button class="search-clear" id="searchClear" style="display:none">&times;</button>
     </div>
     <div class="type-filters" id="typeFilters"></div>
     <span class="stats" id="stats"></span>
@@ -1168,25 +1189,41 @@
 
   // ── Search ──
   const searchInput = document.getElementById("search");
+  const searchClear = document.getElementById("searchClear");
   let searchTimeout;
   searchInput.addEventListener("input", (e) => {
     clearTimeout(searchTimeout);
+    searchClear.style.display = e.target.value ? "block" : "none";
     searchTimeout = setTimeout(() => {
       searchQuery = e.target.value.trim();
       renderSessionList();
     }, 200);
   });
 
+  searchClear.addEventListener("click", () => {
+    searchInput.value = "";
+    searchQuery = "";
+    searchClear.style.display = "none";
+    renderSessionList();
+    searchInput.focus();
+  });
+
   // ── Keyboard shortcuts ──
+  let lastEscTime = 0;
   document.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "k") {
       e.preventDefault();
       searchInput.focus();
     }
     if (e.key === "Escape" && document.activeElement === searchInput) {
-      searchInput.value = "";
-      searchQuery = "";
-      renderSessionList();
+      const now = Date.now();
+      if (now - lastEscTime < 300) {
+        searchInput.value = "";
+        searchQuery = "";
+        searchClear.style.display = "none";
+        renderSessionList();
+      }
+      lastEscTime = now;
       searchInput.blur();
     }
   });
