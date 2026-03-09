@@ -10,6 +10,8 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-09 | feat | - | `my-session-wrap` — Stop 훅 추가: `sync-session-stop.js` 세션 종료 시 `SessionDB.syncSingleSession(force)` 호출로 events DB 즉시 갱신 (Hybrid C) |
+| 2026-03-09 | feat | - | `my-session-wrap` — DB 전체 파이프라인 전환: `session-loader.js` DB events 직접 조회(`_loadEventsFromDb`), `session-normalizer.js` `fromDb: true` 분기로 `normalizeEntries` 스킵 → timeline/transcript JSONL 파싱 없이 동작 |
 | 2026-03-09 | feat | - | `my-session-wrap` — `session-loader.js` DB 우선 파일 조회: sessions.db의 `file_path` 활용으로 DFS 생략, `options.dbPath=false`로 비활성화 가능, 기존 테스트 전부 통과 |
 | 2026-03-09 | feat | - | `my-session-dashboard` — `build.js` SQLite DB 기반 증분 빌드 전환: `.build-cache.json` 제거, `SessionDB.sync()` 증분 upsert, `getAllMeta()`·`getMessages()`·`getPlanContent()` 조회로 HTML 생성 |
 | 2026-03-09 | feat | - | `shared/` 공유 모듈 신설: `text-utils.js`(stripSystemTags 등 공통 유틸), `session-parser.js`(JSONL/Plan/Codex 파싱), `session-db.js`(SQLite SessionDB — sync/getAllMeta/getMessages/getEvents/syncSingleSession API); `my-session-wrap` shared.js·session-normalizer.js 위임 전환 |

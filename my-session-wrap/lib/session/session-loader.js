@@ -69,6 +69,42 @@ function _getFilePathFromDb(sessionId, dbPath) {
   }
 }
 
+/**
+ * DB에서 정규화된 이벤트까지 읽기 (SessionDB.syncSingleSession + getEvents)
+ * @returns {{ events, dbSubagents } | null}
+ */
+function _loadEventsFromDb(sessionId, dbPath) {
+  try {
+    const { SessionDB } = require(path.join(__dirname, "../../../shared/session-db.js"));
+    const db = new SessionDB(dbPath);
+    db.syncSingleSession(sessionId, { force: true });
+    const allEvents = db.getEvents(sessionId);
+    db.close();
+
+    if (allEvents.length === 0) return null;
+
+    const events = allEvents.filter((e) => e.source === "main" || !e.source);
+    const subagentMap = new Map();
+    for (const e of allEvents) {
+      if (e.source === "subagent" && e.agentId) {
+        if (!subagentMap.has(e.agentId)) subagentMap.set(e.agentId, []);
+        subagentMap.get(e.agentId).push(e);
+      }
+    }
+    const dbSubagents = Array.from(subagentMap.entries()).map(([agentId, agentEvents]) => ({
+      agentId,
+      events: agentEvents,
+      filePath: "",
+      firstTimestampMs: agentEvents[0]?.timestampMs ?? null,
+      lastTimestampMs: agentEvents[agentEvents.length - 1]?.timestampMs ?? null,
+    }));
+
+    return { events, dbSubagents };
+  } catch {
+    return null;
+  }
+}
+
 function loadSessionBundle(sessionId, options = {}) {
   if (!sessionId) {
     throw new Error("sessionId is required");
@@ -76,26 +112,35 @@ function loadSessionBundle(sessionId, options = {}) {
 
   const claudeProjectsDir = resolveProjectsDir(options);
 
-  // DB 우선 조회 — DB의 file_path로 DFS 생략
+  // DB 우선 조회 — events까지 직접 읽기 (syncSingleSession + getEvents)
   // options.dbPath === false 로 명시적 비활성화 가능
-  let mainFilePath = "";
   if (options.dbPath !== false) {
     const dbPath = options.dbPath || (fs.existsSync(DEFAULT_DB_PATH) ? DEFAULT_DB_PATH : null);
     if (dbPath) {
-      const fp = _getFilePathFromDb(sessionId, dbPath);
-      if (fp && fs.existsSync(fp)) {
-        mainFilePath = fp;
+      const dbResult = _loadEventsFromDb(sessionId, dbPath);
+      if (dbResult) {
+        const mainFilePath = _getFilePathFromDb(sessionId, dbPath) || "";
+        return {
+          claudeProjectsDir,
+          mainEntries: [],
+          mainFilePath,
+          sessionId,
+          subagentFiles: [],
+          subagents: [],
+          fromDb: true,
+          events: dbResult.events,
+          dbSubagents: dbResult.dbSubagents,
+        };
       }
     }
   }
 
-  // DFS 폴백
-  if (!mainFilePath) {
-    if (!fs.existsSync(claudeProjectsDir)) {
-      throw new Error(`Claude projects directory not found: ${claudeProjectsDir}`);
-    }
-    mainFilePath = findSessionFile(sessionId, claudeProjectsDir);
+  // JSONL 폴백 — DB 없거나 이벤트 조회 실패 시
+  let mainFilePath = "";
+  if (!fs.existsSync(claudeProjectsDir)) {
+    throw new Error(`Claude projects directory not found: ${claudeProjectsDir}`);
   }
+  mainFilePath = findSessionFile(sessionId, claudeProjectsDir);
 
   if (!mainFilePath) {
     throw new Error(`Session file not found for sessionId: ${sessionId}`);
