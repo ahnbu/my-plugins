@@ -244,7 +244,11 @@ class SessionDB {
           for (const file of files) {
             if (!file.endsWith(".jsonl")) continue;
             const filePath = path.join(dayPath, file);
-            const cacheKey = "codex:" + path.basename(file, ".jsonl");
+            // 파일명에서 UUID 추출 (예: rollout-...-UUID.jsonl → UUID)
+            // DB session_id는 "codex:UUID" 형식이므로 cacheKey를 일치시킴
+            const basename = path.basename(file, ".jsonl");
+            const uuidMatch = basename.match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+            const cacheKey = uuidMatch ? "codex:" + uuidMatch[1] : "codex:" + basename;
 
             try {
               const mtime = fs.statSync(filePath).mtimeMs;
