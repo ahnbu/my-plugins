@@ -1,6 +1,30 @@
 "use strict";
 
-const { formatClock, summarizeToolResult } = require("./shared.js");
+const { cleanToolResultText, formatClock, formatDuration, getToolContext, shortenToolName, summarizeToolResult } = require("./shared.js");
+
+function clockToSeconds(clock) {
+  if (!clock) return 0;
+  const parts = clock.split(":").map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return (parts[0] || 0) * 60 + (parts[1] || 0);
+}
+
+// resultPreview may be a raw JSON array wrapper or truncated mid-JSON.
+// Step 1: shared cleanToolResultText (full JSON parse + Playwright code removal)
+// Step 2: strip remaining JSON array wrapper (happens when parse failed but content was modified)
+function timelinePreview(text) {
+  if (!text) return "(no result)";
+  let result = cleanToolResultText(text);
+  // If still wrapped in JSON array (full parse failed), extract text value
+  const m = result.match(/^\[{"type":"text","text":"([\s\S]{0,150})/);
+  if (m) {
+    result = m[1]
+      .replace(/\\n/g, " ")
+      .replace(/\\"/g, '"')
+      .replace(/^### Result\s+/, "");
+  }
+  return result.replace(/\n/g, " ").replace(/"$/, "").slice(0, 60);
+}
 
 function buildTimeline(normalized) {
   const mainEvents = normalized.events;
@@ -81,38 +105,56 @@ function buildTimeline(normalized) {
 }
 
 function renderTimelineMarkdown(timeline) {
+  const { summary, sessionId, toolCalls, subagentSpans } = timeline;
+
   const lines = [
     "# Session Timeline",
     "",
-    `- Session ID: ${timeline.sessionId}`,
-    `- Session elapsed: ${timeline.summary.sessionElapsedMs} ms`,
-    `- Total tool wait: ${timeline.summary.totalToolWaitMs} ms`,
-    `- Total AI turn duration: ${timeline.summary.totalTurnDurationMs} ms`,
-    `- Total subagent span: ${timeline.summary.subagentSpanMs} ms`,
+    "| 항목 | 값 |",
+    "|------|-----|",
+    `| Session ID | \`${sessionId}\` |`,
+    `| 세션 소요 | ${formatDuration(summary.sessionElapsedMs)} |`,
+    `| AI 턴 소요 | ${formatDuration(summary.totalTurnDurationMs)} |`,
+    `| 도구 대기 | ${formatDuration(summary.totalToolWaitMs)} |`,
+    `| 서브에이전트 | ${formatDuration(summary.subagentSpanMs)} |`,
     "",
-    "## Tools",
+    `## Tools (${toolCalls.length}건)`,
+    "",
   ];
 
-  if (timeline.toolCalls.length === 0) {
-    lines.push("- No direct tool calls");
+  if (toolCalls.length === 0) {
+    lines.push("도구 호출 없음", "");
   } else {
-    for (const toolCall of timeline.toolCalls) {
+    lines.push(
+      "| # | 시각 | 간격 | 도구 | 입력 | 대기 | 상태 | 결과 요약 |",
+      "|---|------|------|------|------|------|------|-----------|"
+    );
+    for (let i = 0; i < toolCalls.length; i++) {
+      const toolCall = toolCalls[i];
+      const shortName = shortenToolName(toolCall.toolName);
+      const wait = toolCall.waitMs != null ? formatDuration(toolCall.waitMs) : "pending";
+      const preview = timelinePreview(toolCall.resultPreview);
+      const prevSeconds = i === 0 ? 0 : clockToSeconds(toolCalls[i - 1].startClock);
+      const gap = formatDuration((clockToSeconds(toolCall.startClock) - prevSeconds) * 1000);
+      const inputCtx = getToolContext(toolCall.input).replace(/\|/g, "\\|").slice(0, 40);
       lines.push(
-        `- [${toolCall.startClock}] ${toolCall.toolName} (${toolCall.waitMs ?? "pending"} ms)`,
-        `  ${toolCall.resultPreview || "(no result)"}`
+        `| ${i + 1} | ${toolCall.startClock} | ${gap} | ${shortName} | ${inputCtx} | ${wait} | ${toolCall.status} | ${preview} |`
       );
     }
+    lines.push("");
   }
 
-  lines.push("", "## Subagents");
-  if (timeline.subagentSpans.length === 0) {
-    lines.push("- No subagent spans");
+  lines.push(`## Subagents (${subagentSpans.length}건)`, "");
+  if (subagentSpans.length === 0) {
+    lines.push("| Agent | 구간 | 소요 |", "|-------|------|------|", "| (없음) | | |", "");
   } else {
-    for (const subagent of timeline.subagentSpans) {
+    lines.push("| Agent | 구간 | 소요 |", "|-------|------|------|");
+    for (const subagent of subagentSpans) {
       lines.push(
-        `- ${subagent.agentId}: ${subagent.spanMs} ms (${subagent.startClock} -> ${subagent.endClock})`
+        `| ${subagent.agentId} | ${subagent.startClock} → ${subagent.endClock} | ${formatDuration(subagent.spanMs)} |`
       );
     }
+    lines.push("");
   }
 
   return lines.join("\n");

@@ -1,0 +1,714 @@
+"use strict";
+// shared/session-parser.js — JSONL/Plan/Codex 파싱 + JSONL 이벤트 정규화
+// build.js와 session-normalizer.js에서 추출한 공유 파싱 로직
+
+const fs = require("node:fs");
+const path = require("node:path");
+const {
+  findToolResults,
+  findToolUses,
+  getTextContent,
+  getThinkingContent,
+  parseTimestamp,
+  stripSystemTags,
+} = require("./text-utils.js");
+
+// ── 불용어 ──
+const STOPWORDS = new Set([
+  // 조사
+  "은", "는", "이", "가", "을", "를", "에", "에서", "의", "와", "과",
+  "도", "만", "로", "으로", "부터", "까지", "에게", "한테", "께",
+  // 대명사/지시어
+  "나", "너", "우리", "저", "이것", "그것", "저것", "여기", "거기",
+  "이", "그", "저", "것", "거", "뭐", "어떤",
+  // 접속/부사
+  "그리고", "그래서", "하지만", "그런데", "또", "더", "좀", "잘",
+  "매우", "아주", "정말", "진짜", "너무",
+  // 동사/형용사 어미
+  "하다", "되다", "있다", "없다", "같다",
+  // 일반
+  "수", "등", "때", "중", "위", "후", "안", "밖",
+  // 영어 불용어
+  "the", "a", "an", "is", "are", "was", "were", "be", "been",
+  "have", "has", "had", "do", "does", "did", "will", "would",
+  "could", "should", "may", "might", "can", "shall",
+  "i", "you", "he", "she", "it", "we", "they", "me", "my",
+  "your", "his", "her", "its", "our", "their",
+  "this", "that", "these", "those", "what", "which", "who",
+  "in", "on", "at", "to", "for", "of", "with", "by", "from",
+  "and", "or", "but", "not", "so", "if", "then",
+  "how", "please", "help", "want", "need", "make", "let",
+  // 시스템 태그 잔여물
+  "command", "message", "name", "args", "local", "caveat",
+  "ide", "opened", "file", "user", "system", "reminder",
+  "screenshot", "pasted", "image", "png", "jpg", "jpeg",
+  // Plan 실행 boilerplate
+  "implement", "following", "plan", "context", "resume",
+  // 경로 조각
+  "users", "claude", "cloudsync", "download",
+]);
+
+// ── 키워드 추출 ──
+function extractKeywords(text, count = 3) {
+  if (!text) return [];
+
+  const words = text
+    .replace(/[^\w\sㄱ-ㅎㅏ-ㅣ가-힣-]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim().toLowerCase())
+    .filter((w) => {
+      if (w.length <= 1) return false;
+      if (STOPWORDS.has(w)) return false;
+      if (/^\d+$/.test(w)) return false;
+      if (/^[0-9a-f]{8,}$/.test(w)) return false;
+      if (/^\d{4}-?\d{2}-?\d{2}/.test(w)) return false;
+      return true;
+    });
+
+  const seen = new Set();
+  const unique = [];
+  for (const w of words) {
+    if (!seen.has(w)) {
+      seen.add(w);
+      unique.push(w);
+    }
+  }
+
+  return unique.slice(0, count);
+}
+
+// build.js 호환: 배열의 첫 번째 text 블록만 반환 (stripSystemTags 미적용)
+function _getRawFirstText(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    const textBlock = content.find((b) => b.type === "text");
+    if (textBlock) return textBlock.text;
+  }
+  return "";
+}
+
+// 메시지 전체 텍스트 (모든 text 블록 조인, stripSystemTags 미적용)
+function getTextFromMessage(msg) {
+  if (!msg?.content) return "";
+  if (typeof msg.content === "string") return msg.content;
+  if (Array.isArray(msg.content)) {
+    return msg.content
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("\n");
+  }
+  return "";
+}
+
+// 여러 소스에서 키워드 폴백 추출
+function extractKeywordsWithFallback(entries) {
+  // 1차: 첫 번째 user 메시지
+  for (const entry of entries) {
+    if (entry.type === "user" && entry.message?.content) {
+      const text = stripSystemTags(_getRawFirstText(entry.message.content));
+      const kw = extractKeywords(text);
+      if (kw.length > 0) return { keywords: kw, firstMessage: text };
+    }
+  }
+
+  // 2차: 두 번째~세 번째 user 메시지
+  let userCount = 0;
+  for (const entry of entries) {
+    if (entry.type === "user" && entry.message?.content) {
+      userCount++;
+      if (userCount <= 1) continue;
+      if (userCount > 3) break;
+      const text = stripSystemTags(_getRawFirstText(entry.message.content));
+      const kw = extractKeywords(text);
+      if (kw.length > 0) return { keywords: kw, firstMessage: text };
+    }
+  }
+
+  // 3차: 첫 번째 assistant 텍스트 응답
+  for (const entry of entries) {
+    if (entry.type === "assistant" && entry.message?.content) {
+      if (Array.isArray(entry.message.content)) {
+        for (const block of entry.message.content) {
+          if (block.type === "text" && block.text) {
+            const kw = extractKeywords(block.text);
+            if (kw.length > 0) return { keywords: kw, firstMessage: "" };
+          }
+        }
+      }
+    }
+  }
+
+  // 4차: 도구 이름 + 프로젝트명 폴백
+  const toolSet = new Set();
+  for (const entry of entries) {
+    if (entry.type === "assistant" && entry.message?.content) {
+      if (Array.isArray(entry.message.content)) {
+        for (const block of entry.message.content) {
+          if (block.type === "tool_use" && block.name) {
+            toolSet.add(block.name);
+          }
+        }
+      }
+    }
+  }
+  const cwd = findCwd(entries);
+  const projectName = cwd ? cwd.split(/[/\\]/).pop() : "";
+  const fallback = [];
+  if (projectName) fallback.push(projectName);
+  for (const t of toolSet) {
+    if (fallback.length >= 3) break;
+    fallback.push(t);
+  }
+
+  return { keywords: fallback.slice(0, 3), firstMessage: "" };
+}
+
+// ── JSONL 파싱 ──
+function parseJSONL(filePath) {
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n").filter((l) => l.trim());
+  const entries = [];
+  for (const line of lines) {
+    try {
+      entries.push(JSON.parse(line));
+    } catch {
+      // skip
+    }
+  }
+  return entries;
+}
+
+// JSONL 문자열 또는 라인 배열에서 파싱 (session-loader.js 호환)
+function readJsonl(filePath) {
+  return fs
+    .readFileSync(filePath, "utf8")
+    .split(/\r?\n/)
+    .filter((line) => line.trim())
+    .map((line) => {
+      try { return JSON.parse(line); } catch { return null; }
+    })
+    .filter(Boolean);
+}
+
+function formatTimestamp(isoStr) {
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return null;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}_${hh}${min}`;
+}
+
+function normalizeProjectPath(p) {
+  if (!p) return "";
+  return p.replace(/^([a-z]):/, (_, letter) => letter.toUpperCase() + ":");
+}
+
+function findCwd(entries) {
+  for (const entry of entries) {
+    if (entry.cwd) return entry.cwd;
+  }
+  return "";
+}
+
+// ── Claude 세션 파싱 ──
+function processSession(filePath) {
+  const entries = parseJSONL(filePath);
+  const absFilePath = path.resolve(filePath);
+  if (entries.length === 0) return null;
+
+  const sessionId = path.basename(filePath, ".jsonl");
+  const firstEntry = entries.find(e => e.timestamp) || entries[0];
+  const lastEntry = entries[entries.length - 1];
+
+  const timestamp = firstEntry.timestamp;
+  if (!timestamp || isNaN(new Date(timestamp).getTime())) return null;
+
+  const { keywords, firstMessage } = extractKeywordsWithFallback(entries);
+  const timeStr = formatTimestamp(timestamp);
+  const title = [timeStr, ...keywords].join("_");
+
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let messageCount = 0;
+  let toolUseCount = 0;
+  const models = new Set();
+  const toolNames = {};
+  const messages = [];
+
+  // plan_slug: 세션이 어떤 플랜에서 시작됐는지 (linkedSessionId 연결용)
+  let planSlug = null;
+  for (let i = 0; i < Math.min(10, entries.length); i++) {
+    if (entries[i].slug && entries[i].sessionId) {
+      planSlug = entries[i].slug;
+      break;
+    }
+  }
+
+  for (const entry of entries) {
+    if (entry.type === "user") {
+      messageCount++;
+      const rawText = getTextFromMessage(entry.message);
+      messages.push({
+        role: "user",
+        text: stripSystemTags(rawText),
+        timestamp: entry.timestamp,
+      });
+    } else if (entry.type === "assistant" && entry.message) {
+      const msg = entry.message;
+      if (msg.model) models.add(msg.model);
+      if (msg.usage) {
+        totalInputTokens +=
+          (msg.usage.input_tokens || 0) +
+          (msg.usage.cache_creation_input_tokens || 0) +
+          (msg.usage.cache_read_input_tokens || 0);
+        totalOutputTokens += msg.usage.output_tokens || 0;
+      }
+      if (Array.isArray(msg.content)) {
+        const textParts = [];
+        const tools = [];
+        for (const block of msg.content) {
+          if (block.type === "text" && block.text) {
+            textParts.push(block.text);
+          } else if (block.type === "tool_use") {
+            toolUseCount++;
+            const name = block.name || "unknown";
+            toolNames[name] = (toolNames[name] || 0) + 1;
+            tools.push({ name, input: block.input });
+          } else if (block.type === "thinking" && block.thinking) {
+            textParts.push(`[thinking] ${block.thinking}`);
+          }
+        }
+        if (textParts.length > 0 || tools.length > 0) {
+          const msgObj = { role: "assistant", timestamp: entry.timestamp };
+          if (textParts.length > 0) msgObj.text = textParts.join("\n");
+          if (tools.length > 0) msgObj.tools = tools;
+          messages.push(msgObj);
+        }
+      }
+    }
+  }
+
+  // Merge streaming chunks
+  const mergedMessages = [];
+  for (const msg of messages) {
+    const prev = mergedMessages[mergedMessages.length - 1];
+    if (
+      prev &&
+      prev.role === "assistant" &&
+      msg.role === "assistant" &&
+      prev.timestamp === msg.timestamp
+    ) {
+      if (msg.text) {
+        prev.text = prev.text ? prev.text + "\n" + msg.text : msg.text;
+      }
+      if (msg.tools) {
+        prev.tools = prev.tools ? [...prev.tools, ...msg.tools] : msg.tools;
+      }
+    } else {
+      mergedMessages.push({ ...msg });
+    }
+  }
+
+  const project = normalizeProjectPath(findCwd(entries));
+
+  const displayFirstMsg = firstMessage || stripSystemTags(
+    messages.find((m) => m.role === "user")?.text || ""
+  );
+
+  const metadata = {
+    sessionId,
+    title,
+    keywords,
+    timestamp,
+    lastTimestamp: lastEntry.timestamp,
+    project,
+    gitBranch: entries.find((e) => e.gitBranch)?.gitBranch || "",
+    models: [...models],
+    messageCount,
+    toolUseCount,
+    totalInputTokens,
+    totalOutputTokens,
+    toolNames,
+    firstMessage: displayFirstMsg.substring(0, 200),
+    projectDisplay: project,
+    filePath: absFilePath,
+    planSlug,
+  };
+
+  return { metadata, messages: mergedMessages };
+}
+
+// ── Codex 세션 파싱 ──
+function processCodexSession(filePath) {
+  const entries = parseJSONL(filePath);
+  const absFilePath = path.resolve(filePath);
+  if (entries.length === 0) return null;
+
+  const sessionMeta = entries.find((e) => e.type === "session_meta");
+  if (!sessionMeta) return null;
+
+  const payload = sessionMeta.payload || {};
+  const rawSessionId = payload.id || path.basename(filePath, ".jsonl");
+  const sessionId = "codex:" + rawSessionId;
+  const timestamp = payload.timestamp || sessionMeta.timestamp;
+  if (!timestamp || isNaN(new Date(timestamp).getTime())) return null;
+
+  const cwd = payload.cwd || "";
+  const gitBranch = (payload.git && payload.git.branch) ? payload.git.branch : "";
+  const originator = payload.originator || "codex_cli_rs";
+
+  const models = new Set();
+  for (const entry of entries) {
+    if (entry.type === "turn_context" && entry.payload && entry.payload.model) {
+      models.add(entry.payload.model);
+    }
+  }
+
+  const messages = [];
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let lastTokenEntry = null;
+  let toolUseCount = 0;
+  const toolNames = {};
+
+  for (const entry of entries) {
+    const ts = entry.timestamp;
+
+    if (entry.type === "event_msg") {
+      const ep = entry.payload || {};
+      if (ep.type === "user_message" && ep.message) {
+        messages.push({
+          role: "user",
+          text: stripSystemTags(ep.message),
+          timestamp: ts,
+        });
+      } else if (ep.type === "token_count" && ep.info && ep.info.total_token_usage) {
+        lastTokenEntry = ep.info.total_token_usage;
+      }
+    } else if (entry.type === "response_item") {
+      const ep = entry.payload || {};
+      const pType = ep.type;
+
+      if (pType === "message") {
+        const role = ep.role;
+        if (role === "assistant") {
+          let text = "";
+          if (Array.isArray(ep.content)) {
+            text = ep.content
+              .filter((c) => c.type === "output_text")
+              .map((c) => c.text || "")
+              .join("\n");
+          }
+          if (text) {
+            messages.push({ role: "assistant", text, timestamp: ts });
+          }
+        }
+      } else if (pType === "function_call") {
+        const name = ep.name || "unknown";
+        let input = {};
+        try {
+          input = ep.arguments ? JSON.parse(ep.arguments) : {};
+        } catch {
+          input = { raw: ep.arguments };
+        }
+        toolUseCount++;
+        toolNames[name] = (toolNames[name] || 0) + 1;
+        const prev = messages[messages.length - 1];
+        if (prev && prev.role === "assistant") {
+          prev.tools = prev.tools ? [...prev.tools, { name, input }] : [{ name, input }];
+        } else {
+          messages.push({ role: "assistant", timestamp: ts, tools: [{ name, input }] });
+        }
+      } else if (pType === "custom_tool_call") {
+        const name = ep.name || "unknown";
+        const input = ep.input !== undefined ? ep.input : {};
+        toolUseCount++;
+        toolNames[name] = (toolNames[name] || 0) + 1;
+        const prev = messages[messages.length - 1];
+        if (prev && prev.role === "assistant") {
+          prev.tools = prev.tools ? [...prev.tools, { name, input }] : [{ name, input }];
+        } else {
+          messages.push({ role: "assistant", timestamp: ts, tools: [{ name, input }] });
+        }
+      }
+    }
+  }
+
+  if (lastTokenEntry) {
+    totalInputTokens = (lastTokenEntry.input_tokens || 0) + (lastTokenEntry.cached_input_tokens || 0);
+    totalOutputTokens = (lastTokenEntry.output_tokens || 0) + (lastTokenEntry.reasoning_output_tokens || 0);
+  }
+
+  if (messages.length === 0) return null;
+
+  const firstUserMsg = messages.find((m) => m.role === "user");
+  const firstMsgText = firstUserMsg ? firstUserMsg.text : "";
+  const keywords = extractKeywords(firstMsgText);
+
+  const timeStr = formatTimestamp(timestamp);
+  const title = [timeStr, ...keywords].join("_");
+  const lastEntry = entries[entries.length - 1];
+  const project = normalizeProjectPath(cwd);
+  const messageCount = messages.filter((m) => m.role === "user").length;
+
+  const metadata = {
+    sessionId,
+    type: "codex",
+    originator,
+    title,
+    keywords,
+    timestamp,
+    lastTimestamp: lastEntry.timestamp,
+    project,
+    projectDisplay: project,
+    gitBranch,
+    models: [...models],
+    messageCount,
+    toolUseCount,
+    totalInputTokens,
+    totalOutputTokens,
+    toolNames,
+    firstMessage: firstMsgText.substring(0, 200),
+    filePath: absFilePath,
+  };
+
+  return { metadata, messages };
+}
+
+// ── Plan 파싱 ──
+function parsePlan(filePath) {
+  const absFilePath = path.resolve(filePath);
+  const slug = path.basename(filePath, ".md");
+  const stat = fs.statSync(filePath);
+  const rawText = fs.readFileSync(filePath, "utf8");
+
+  if (!rawText.trim()) return null;
+
+  const lines = rawText.split("\n");
+  let title = slug;
+  const firstHeading = lines.find((l) => /^#\s+/.test(l));
+  if (firstHeading) {
+    title = firstHeading.replace(/^#+\s+/, "").trim();
+  }
+
+  const isCompleted = /^#\s*완료/.test(lines[0]?.trim() || "");
+  const timestamp = new Date(stat.mtimeMs).toISOString();
+
+  let contextText = "";
+  const contextIdx = lines.findIndex((l) => /^##\s*(Context|컨텍스트)/i.test(l));
+  if (contextIdx >= 0) {
+    for (let i = contextIdx + 1; i < lines.length; i++) {
+      if (/^##\s/.test(lines[i])) break;
+      if (lines[i].trim()) {
+        contextText += lines[i].trim() + " ";
+      }
+    }
+  }
+  const firstMessage = (contextText || rawText.substring(0, 200)).trim().substring(0, 200);
+
+  const kwSource = title + " " + contextText;
+  const keywords = extractKeywords(kwSource);
+
+  const pathMatch = rawText.match(/[A-Z]:[/\\][\w/\\.-]+|~\/[\w/\\.-]+/);
+  const project = pathMatch ? normalizeProjectPath(pathMatch[0].replace(/[/\\][^/\\]+\.\w+$/, "")) : "";
+
+  return {
+    metadata: {
+      planId: "plan:" + slug,
+      sessionId: "plan:" + slug,
+      type: "plan",
+      title,
+      slug,
+      isCompleted,
+      timestamp,
+      keywords,
+      project,
+      projectDisplay: project,
+      firstMessage,
+      charCount: rawText.length,
+      gitBranch: "",
+      models: [],
+      messageCount: 0,
+      toolUseCount: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      toolNames: {},
+      filePath: absFilePath,
+    },
+    content: rawText,
+  };
+}
+
+// ── JSONL 이벤트 정규화 (session-normalizer.js에서 이동) ──
+
+function pushTopLevelMessageEvents(events, entry, source, agentId) {
+  const timestamp = entry.timestamp || "";
+  const timestampMs = parseTimestamp(timestamp);
+
+  if (entry.type === "user" && entry.message) {
+    const content = entry.message.content || entry.message;
+    const text = getTextContent(content);
+    if (text) {
+      events.push({
+        agentId,
+        kind: "user_text",
+        source,
+        text,
+        timestamp,
+        timestampMs,
+      });
+    }
+
+    for (const toolResult of findToolResults(content)) {
+      events.push({
+        agentId,
+        isError: toolResult.isError,
+        kind: "tool_result",
+        rawText: toolResult.rawText,
+        source,
+        timestamp,
+        timestampMs,
+        toolUseId: toolResult.toolUseId,
+      });
+    }
+
+    if (entry.planContent) {
+      events.push({
+        agentId,
+        kind: "plan_content",
+        source,
+        text: entry.planContent,
+        timestamp,
+        timestampMs,
+      });
+    }
+
+    return;
+  }
+
+  if (entry.type !== "assistant" || !entry.message) {
+    return;
+  }
+
+  const text = getTextContent(entry.message.content || entry.message);
+  const thinking = getThinkingContent(entry.message.content);
+  if (text) {
+    events.push({
+      agentId,
+      kind: "assistant_text",
+      source,
+      text,
+      timestamp,
+      timestampMs,
+    });
+  }
+
+  if (thinking) {
+    events.push({
+      agentId,
+      kind: "assistant_thinking",
+      source,
+      text: thinking,
+      timestamp,
+      timestampMs,
+    });
+  }
+
+  for (const toolUse of findToolUses(entry.message.content)) {
+    events.push({
+      agentId,
+      input: toolUse.input,
+      kind: "tool_use",
+      source,
+      timestamp,
+      timestampMs,
+      toolName: toolUse.toolName,
+      toolUseId: toolUse.toolUseId,
+    });
+  }
+}
+
+function pushProgressEvents(events, entry, source, agentId) {
+  const timestamp = entry.timestamp || "";
+  const timestampMs = parseTimestamp(timestamp);
+  const progressType = entry.data?.type || "progress";
+
+  events.push({
+    agentId: entry.data?.agentId || agentId || "",
+    command: entry.data?.command || "",
+    hookEvent: entry.data?.hookEvent || "",
+    kind: "progress",
+    progressType,
+    prompt: entry.data?.prompt || "",
+    source,
+    timestamp,
+    timestampMs,
+  });
+
+  const progressMessage = entry.data?.message?.message;
+  if (!progressMessage) {
+    return;
+  }
+
+  for (const toolResult of findToolResults(progressMessage.content)) {
+    events.push({
+      agentId: entry.data?.agentId || agentId || "",
+      fromProgressMessage: true,
+      isError: toolResult.isError,
+      kind: "tool_result",
+      progressType,
+      rawText: toolResult.rawText,
+      source,
+      timestamp,
+      timestampMs,
+      toolUseId: toolResult.toolUseId,
+    });
+  }
+}
+
+function normalizeEntries(entries, source, agentId) {
+  const events = [];
+
+  for (const entry of entries) {
+    if (!entry || !entry.timestamp) continue;
+
+    if (entry.type === "system" && entry.subtype === "turn_duration") {
+      events.push({
+        agentId,
+        durationMs: entry.durationMs || 0,
+        kind: "turn_duration",
+        source,
+        timestamp: entry.timestamp,
+        timestampMs: parseTimestamp(entry.timestamp),
+      });
+      continue;
+    }
+
+    if (entry.type === "progress" && entry.data) {
+      pushProgressEvents(events, entry, source, agentId);
+      continue;
+    }
+
+    pushTopLevelMessageEvents(events, entry, source, agentId);
+  }
+
+  return events.sort((left, right) => left.timestampMs - right.timestampMs);
+}
+
+module.exports = {
+  extractKeywords,
+  extractKeywordsWithFallback,
+  findCwd,
+  formatTimestamp,
+  getTextFromMessage,
+  normalizeEntries,
+  normalizeProjectPath,
+  parsePlan,
+  parseJSONL,
+  processCodexSession,
+  processSession,
+  readJsonl,
+};

@@ -10,6 +10,77 @@ const { loadSessionBundle } = require("../lib/session/session-loader.js");
 const { normalizeSessionBundle } = require("../lib/session/session-normalizer.js");
 const { buildTimeline } = require("../lib/session/timeline-builder.js");
 const { buildTranscript } = require("../lib/session/transcript-builder.js");
+const { formatDuration, shortenToolName, cleanToolResultText } = require("../lib/session/shared.js");
+
+// --- formatDuration ---
+test("formatDuration: 0 → 00:00", () => {
+  assert.equal(formatDuration(0), "00:00");
+});
+
+test("formatDuration: 45000 → 00:45", () => {
+  assert.equal(formatDuration(45000), "00:45");
+});
+
+test("formatDuration: 77000 → 01:17", () => {
+  assert.equal(formatDuration(77000), "01:17");
+});
+
+test("formatDuration: 3930000 → 1:05:30", () => {
+  assert.equal(formatDuration(3930000), "1:05:30");
+});
+
+test("formatDuration: null → 00:00", () => {
+  assert.equal(formatDuration(null), "00:00");
+});
+
+// --- shortenToolName ---
+test("shortenToolName: 일반 도구는 그대로", () => {
+  assert.equal(shortenToolName("Read"), "Read");
+  assert.equal(shortenToolName("Bash"), "Bash");
+});
+
+test("shortenToolName: mcp plugin 도구 → action만", () => {
+  assert.equal(
+    shortenToolName("mcp__plugin_playwright_playwright__browser_run_code"),
+    "browser_run_code"
+  );
+});
+
+test("shortenToolName: mcp 서버 도구 → server:action", () => {
+  assert.equal(
+    shortenToolName("mcp__github__create_pull_request"),
+    "github:create_pull_request"
+  );
+});
+
+test("shortenToolName: server === action → server만", () => {
+  assert.equal(shortenToolName("mcp__fetch__fetch"), "fetch");
+});
+
+// --- cleanToolResultText ---
+test("cleanToolResultText: raw JSON array 파싱", () => {
+  const raw = JSON.stringify([{ type: "text", text: "hello world" }]);
+  assert.equal(cleanToolResultText(raw), "hello world");
+});
+
+test("cleanToolResultText: Playwright 코드블록 정리", () => {
+  const raw = "### Ran Playwright code\n```js\nconsole.log('hi');\n```";
+  assert.equal(cleanToolResultText(raw), "Ran Playwright code");
+});
+
+test("cleanToolResultText: ### Result 접두사 제거", () => {
+  const raw = JSON.stringify([{ type: "text", text: "### Result\nhello" }]);
+  assert.equal(cleanToolResultText(raw), "hello");
+});
+
+test("cleanToolResultText: 일반 텍스트 통과", () => {
+  assert.equal(cleanToolResultText("regular text"), "regular text");
+});
+
+test("cleanToolResultText: 빈 입력", () => {
+  assert.equal(cleanToolResultText(""), "");
+  assert.equal(cleanToolResultText(null), "");
+});
 
 test("loadSessionBundle finds the main session file and subagent transcripts", () => {
   const bundle = loadSessionBundle(sessionId, { claudeProjectsDir: fixtureRoot });
@@ -53,7 +124,7 @@ test("buildTranscript keeps plan content and meaningful tool results by default"
 
   assert.match(transcript, /## Plan/);
   assert.match(transcript, /session-timeline 구현/);
-  assert.match(transcript, /TOOL USE Read/);
+  assert.match(transcript, /도구.*Read/);
   assert.match(transcript, /D:\\work\\notes\.md/);
   assert.match(transcript, /Full output saved to:/);
   assert.match(transcript, /Grep failed: access denied/);

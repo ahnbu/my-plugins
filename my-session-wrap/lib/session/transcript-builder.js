@@ -1,9 +1,12 @@
 "use strict";
 
 const {
+  cleanToolResultText,
   extractPaths,
   extractPersistedOutputPath,
   formatClock,
+  getToolContext,
+  shortenToolName,
   summarizeToolResult,
 } = require("./shared.js");
 
@@ -161,40 +164,55 @@ function buildTranscript(normalized, options = {}) {
   }
 
   lines.push("## Conversation", "");
+  let prevKind = null;
   for (const entry of entries) {
     if (entry.kind === "plan_content") continue;
 
     if (entry.kind === "user_text") {
-      lines.push(`[${entry.timeLabel}] USER`, entry.text, "");
+      if (prevKind !== null) lines.push("---", "");
+      lines.push(`**[${entry.timeLabel}] 사용자**`, "", entry.text, "");
+      prevKind = entry.kind;
       continue;
     }
 
     if (entry.kind === "assistant_text") {
-      lines.push(`[${entry.timeLabel}] ASSISTANT`, entry.text, "");
+      if (prevKind !== null && prevKind !== "tool_use" && prevKind !== "tool_result") {
+        lines.push("---", "");
+      }
+      lines.push(`**[${entry.timeLabel}] 어시스턴트**`, "", entry.text, "");
+      prevKind = entry.kind;
       continue;
     }
 
     if (entry.kind === "assistant_thinking") {
-      lines.push(`[${entry.timeLabel}] THINKING`, entry.text, "");
+      if (prevKind !== null) lines.push("---", "");
+      lines.push(`**[${entry.timeLabel}] 내부 사고**`, "", entry.text, "");
+      prevKind = entry.kind;
       continue;
     }
 
     if (entry.kind === "tool_use") {
+      const shortName = shortenToolName(entry.toolName);
+      const context = getToolContext(entry.input);
+      const contextStr = context ? ` — ${context}` : "";
       lines.push(
-        `[${entry.timeLabel}] TOOL USE ${entry.toolName}`,
-        entry.text,
+        `> **도구** \`${shortName}\`${contextStr}`,
+        "> ```json",
+        `> ${JSON.stringify(entry.input || {})}`,
+        "> ```",
         ""
       );
+      prevKind = entry.kind;
       continue;
     }
 
     if (entry.kind === "tool_result") {
-      const label = entry.isError ? "TOOL ERROR" : "TOOL RESULT";
-      lines.push(
-        `[${entry.timeLabel}] ${label} ${entry.toolName}`,
-        entry.text,
-        ""
-      );
+      const shortName = shortenToolName(entry.toolName);
+      const cleaned = cleanToolResultText(entry.text);
+      const label = entry.isError ? "**에러**" : "결과";
+      const resultLines = cleaned.split("\n").map((l) => `> ${l}`).join("\n");
+      lines.push(`> ${label} \`${shortName}\``, resultLines, "");
+      prevKind = entry.kind;
     }
   }
 

@@ -10,6 +10,11 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-09 | feat | - | `my-session-wrap` — `session-loader.js` DB 우선 파일 조회: sessions.db의 `file_path` 활용으로 DFS 생략, `options.dbPath=false`로 비활성화 가능, 기존 테스트 전부 통과 |
+| 2026-03-09 | feat | - | `my-session-dashboard` — `build.js` SQLite DB 기반 증분 빌드 전환: `.build-cache.json` 제거, `SessionDB.sync()` 증분 upsert, `getAllMeta()`·`getMessages()`·`getPlanContent()` 조회로 HTML 생성 |
+| 2026-03-09 | feat | - | `shared/` 공유 모듈 신설: `text-utils.js`(stripSystemTags 등 공통 유틸), `session-parser.js`(JSONL/Plan/Codex 파싱), `session-db.js`(SQLite SessionDB — sync/getAllMeta/getMessages/getEvents/syncSingleSession API); `my-session-wrap` shared.js·session-normalizer.js 위임 전환 |
+| 2026-03-09 | feat | - | `my-session-wrap` — timeline 표에 `간격`(이전 도구 호출 대비 경과시간)·`입력`(도구 호출 컨텍스트) 열 추가, `getToolContext` shared.js로 이전, `timelinePreview` 2-pass 정리(cleanToolResultText → JSON wrapper 제거) |
+| 2026-03-09 | feat | - | `my-session-wrap` — timeline/transcript MD 가독성 개선: `shared.js`에 `formatDuration`·`shortenToolName`·`cleanToolResultText` 헬퍼 추가, `renderTimelineMarkdown` 테이블 렌더링 전환 (ms 노출 제거, 도구명 축약), `buildTranscript` 대화 포맷 개선 (한국어 역할명·`---` 구분선·blockquote 도구 블록), 단위 테스트 11개 추가 |
 | 2026-03-09 | feat | - | `my-session-dashboard`: plan 상세 세션ID에 plan slug 대신 실제 세션 UUID 표시 (`linkedSessionId` 추가) |
 | 2026-03-09 | chore | - | 루트 `dashboard-*.png` 4개 제거 |
 | 2026-03-09 | docs | - | `_docs/` 폴더 구조 재편 — 문서 이동 반영 (`_docs/공통/`으로 세션이력분석·플러그인계획 통합, `_docs/my-session-dashboard/`로 문서 이동, `_docs/문서시스템연구/`·`_docs/세션이력분석/` 폴더 제거) |
