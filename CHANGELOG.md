@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-10 | docs | - | `my-session-dashboard/` — Bun segfault npm 전환 트레이드오프 분석 문서 삭제 (D:\CloudSync로 재편, 번호 prefix 포함 4개 파일로 분리) |
 | 2026-03-09 | docs | - | `20260309_ss_빌드_성능_개선.md` — 3회차 섹션 추가: 배포 누락 재발 원인 분석, 올바른 CLI 절차, 교훈 기록 |
 | 2026-03-09 | docs | - | `CLAUDE.md`, `inject-plugin-guidelines.js` — 배포 절차 CLI 명령 명시: `claude plugin marketplace update` + `claude plugin update` (AI 직접 실행 가능, 마켓플레이스 직접 수정 금지 명문화) |
 | 2026-03-09 | docs | - | `my-session-dashboard/` — Bun segfault npm 전환 트레이드오프 분석 문서 추가 |
