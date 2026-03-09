@@ -4,6 +4,11 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
+// DB 우선 파일 경로 조회 — DFS 생략 최적화
+const DEFAULT_DB_PATH = path.join(
+  os.homedir(), ".claude", "my-claude-plugins", "output", "session-dashboard", "sessions.db"
+);
+
 function resolveProjectsDir(options = {}) {
   if (options.claudeProjectsDir) {
     return path.resolve(options.claudeProjectsDir);
@@ -51,17 +56,47 @@ function findSessionFile(sessionId, rootDir) {
   return "";
 }
 
+/** DB에서 sessionId의 file_path를 조회 (node:sqlite 직접 사용, 읽기 전용) */
+function _getFilePathFromDb(sessionId, dbPath) {
+  try {
+    const { DatabaseSync } = require("node:sqlite");
+    const db = new DatabaseSync(dbPath);
+    const row = db.prepare("SELECT file_path FROM sessions WHERE session_id = ?").get(sessionId);
+    db.close();
+    return row && row.file_path ? row.file_path : null;
+  } catch {
+    return null;
+  }
+}
+
 function loadSessionBundle(sessionId, options = {}) {
   if (!sessionId) {
     throw new Error("sessionId is required");
   }
 
   const claudeProjectsDir = resolveProjectsDir(options);
-  if (!fs.existsSync(claudeProjectsDir)) {
-    throw new Error(`Claude projects directory not found: ${claudeProjectsDir}`);
+
+  // DB 우선 조회 — DB의 file_path로 DFS 생략
+  // options.dbPath === false 로 명시적 비활성화 가능
+  let mainFilePath = "";
+  if (options.dbPath !== false) {
+    const dbPath = options.dbPath || (fs.existsSync(DEFAULT_DB_PATH) ? DEFAULT_DB_PATH : null);
+    if (dbPath) {
+      const fp = _getFilePathFromDb(sessionId, dbPath);
+      if (fp && fs.existsSync(fp)) {
+        mainFilePath = fp;
+      }
+    }
   }
 
-  const mainFilePath = findSessionFile(sessionId, claudeProjectsDir);
+  // DFS 폴백
+  if (!mainFilePath) {
+    if (!fs.existsSync(claudeProjectsDir)) {
+      throw new Error(`Claude projects directory not found: ${claudeProjectsDir}`);
+    }
+    mainFilePath = findSessionFile(sessionId, claudeProjectsDir);
+  }
+
   if (!mainFilePath) {
     throw new Error(`Session file not found for sessionId: ${sessionId}`);
   }
