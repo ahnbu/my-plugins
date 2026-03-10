@@ -232,7 +232,9 @@ function processSession(filePath) {
 
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
-  let messageCount = 0;
+  let userEntryCount = 0;
+  let userTextMessageCount = 0;
+  let toolResultCount = 0;
   let toolUseCount = 0;
   const models = new Set();
   const toolNames = {};
@@ -249,11 +251,24 @@ function processSession(filePath) {
 
   for (const entry of entries) {
     if (entry.type === "user") {
-      messageCount++;
+      userEntryCount++;
+
+      // tool_result block 수 합산
+      const content = entry.message?.content;
+      if (Array.isArray(content)) {
+        toolResultCount += content.filter(b => b.type === "tool_result").length;
+      }
+
+      // 실제 사용자 텍스트 판정
       const rawText = getTextFromMessage(entry.message);
+      const cleanText = stripSystemTags(rawText);
+      if (cleanText.trim()) {
+        userTextMessageCount++;
+      }
+
       messages.push({
         role: "user",
-        text: stripSystemTags(rawText),
+        text: cleanText,
         timestamp: entry.timestamp,
       });
     } else if (entry.type === "assistant" && entry.message) {
@@ -327,7 +342,9 @@ function processSession(filePath) {
     project,
     gitBranch: entries.find((e) => e.gitBranch)?.gitBranch || "",
     models: [...models],
-    messageCount,
+    userEntryCount,
+    userTextMessageCount,
+    toolResultCount,
     toolUseCount,
     totalInputTokens,
     totalOutputTokens,
@@ -372,6 +389,7 @@ function processCodexSession(filePath) {
   let totalOutputTokens = 0;
   let lastTokenEntry = null;
   let toolUseCount = 0;
+  let toolResultCount = 0;
   const toolNames = {};
 
   for (const entry of entries) {
@@ -433,6 +451,8 @@ function processCodexSession(filePath) {
         } else {
           messages.push({ role: "assistant", timestamp: ts, tools: [{ name, input }] });
         }
+      } else if (pType === "function_call_output") {
+        toolResultCount++;
       }
     }
   }
@@ -452,7 +472,7 @@ function processCodexSession(filePath) {
   const title = [timeStr, ...keywords].join("_");
   const lastEntry = entries[entries.length - 1];
   const project = normalizeProjectPath(cwd);
-  const messageCount = messages.filter((m) => m.role === "user").length;
+  const userEntryCount = messages.filter((m) => m.role === "user").length;
 
   const metadata = {
     sessionId,
@@ -466,7 +486,9 @@ function processCodexSession(filePath) {
     projectDisplay: project,
     gitBranch,
     models: [...models],
-    messageCount,
+    userEntryCount,
+    userTextMessageCount: userEntryCount,
+    toolResultCount,
     toolUseCount,
     totalInputTokens,
     totalOutputTokens,
@@ -531,7 +553,9 @@ function parsePlan(filePath) {
       charCount: rawText.length,
       gitBranch: "",
       models: [],
-      messageCount: 0,
+      userEntryCount: 0,
+      userTextMessageCount: 0,
+      toolResultCount: 0,
       toolUseCount: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,

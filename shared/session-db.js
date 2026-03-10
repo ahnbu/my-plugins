@@ -52,7 +52,9 @@ class SessionDB {
         project           TEXT,
         git_branch        TEXT,
         models            TEXT,
-        message_count     INTEGER DEFAULT 0,
+        user_entry_count            INTEGER DEFAULT 0,
+        user_text_message_count     INTEGER DEFAULT 0,
+        tool_result_count           INTEGER DEFAULT 0,
         tool_use_count    INTEGER DEFAULT 0,
         total_input_tokens  INTEGER DEFAULT 0,
         total_output_tokens INTEGER DEFAULT 0,
@@ -104,6 +106,20 @@ class SessionDB {
     this.db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_timestamp ON sessions(timestamp)");
     this.db.exec("CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id)");
     this.db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_plan_slug ON sessions(plan_slug)");
+
+    // 마이그레이션: message_count → user_entry_count + 신규 컬럼 추가
+    const cols = this.db.prepare("PRAGMA table_info(sessions)").all().map(c => c.name);
+    if (cols.includes("message_count")) {
+      // 기존 DB: 컬럼 리네이밍 + 신규 컬럼 추가 + 강제 재동기화
+      this.db.exec("ALTER TABLE sessions RENAME COLUMN message_count TO user_entry_count");
+      this.db.exec("ALTER TABLE sessions ADD COLUMN user_text_message_count INTEGER DEFAULT 0");
+      this.db.exec("ALTER TABLE sessions ADD COLUMN tool_result_count INTEGER DEFAULT 0");
+      this.db.exec("UPDATE sessions SET mtime = 0");
+    } else if (!cols.includes("user_text_message_count")) {
+      // 신규 DB(CREATE TABLE에 이미 user_entry_count 있음): 신규 2개만 추가
+      this.db.exec("ALTER TABLE sessions ADD COLUMN user_text_message_count INTEGER DEFAULT 0");
+      this.db.exec("ALTER TABLE sessions ADD COLUMN tool_result_count INTEGER DEFAULT 0");
+    }
   }
 
   /**
@@ -149,7 +165,7 @@ class SessionDB {
               if (dbMtimes.get(sessionId) === mtime) { claudeCached++; continue; }
 
               const result = processSession(filePath);
-              if (!result || result.metadata.messageCount === 0) continue;
+              if (!result || result.metadata.userEntryCount === 0) continue;
               result.metadata.type = "session";
               this._upsertSession(result.metadata, mtime);
               this._upsertMessages(result.metadata.sessionId, result.messages);
@@ -256,7 +272,7 @@ class SessionDB {
               if (dbMtimes.get(cacheKey) === mtime) { countCb(1, 0); continue; }
 
               const result = processCodexSession(filePath);
-              if (!result || result.metadata.messageCount === 0) continue;
+              if (!result || result.metadata.userEntryCount === 0) continue;
               this._upsertSession(result.metadata, mtime);
               this._upsertMessages(result.metadata.sessionId, result.messages);
               countCb(0, 1);
@@ -284,10 +300,11 @@ class SessionDB {
     this.db.prepare(`
       INSERT OR REPLACE INTO sessions
         (session_id, type, title, keywords, timestamp, last_timestamp, project, git_branch,
-         models, message_count, tool_use_count, total_input_tokens, total_output_tokens,
+         models, user_entry_count, user_text_message_count, tool_result_count,
+         tool_use_count, total_input_tokens, total_output_tokens,
          tool_names, first_message, file_path, mtime,
          slug, is_completed, char_count, linked_session_id, plan_slug, originator)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       metadata.sessionId,
       metadata.type || "session",
@@ -298,7 +315,9 @@ class SessionDB {
       metadata.project || null,
       metadata.gitBranch || null,
       JSON.stringify(metadata.models || []),
-      metadata.messageCount || 0,
+      metadata.userEntryCount || 0,
+      metadata.userTextMessageCount || 0,
+      metadata.toolResultCount || 0,
       metadata.toolUseCount || 0,
       metadata.totalInputTokens || 0,
       metadata.totalOutputTokens || 0,
@@ -360,7 +379,9 @@ class SessionDB {
       projectDisplay: row.project || "",
       gitBranch: row.git_branch || "",
       models: JSON.parse(row.models || "[]"),
-      messageCount: row.message_count || 0,
+      userEntryCount: row.user_entry_count || 0,
+      userTextMessageCount: row.user_text_message_count || 0,
+      toolResultCount: row.tool_result_count || 0,
       toolUseCount: row.tool_use_count || 0,
       totalInputTokens: row.total_input_tokens || 0,
       totalOutputTokens: row.total_output_tokens || 0,

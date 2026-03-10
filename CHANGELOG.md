@@ -10,6 +10,8 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-10 | feat | - | `my-session-dashboard/index.html` — 세션 목록 "메시지" 수 표시를 `userTextMessageCount` 기준으로 전환 (tool_result만 있는 엔트리 제외) |
+| 2026-03-10 | feat | - | `shared/session-parser.js`, `shared/session-db.js` — `message_count` → `user_entry_count` 리네이밍 + 신규 메트릭 `user_text_message_count`(실제 텍스트 입력 수), `tool_result_count`(block 수) 추가; DB 자동 마이그레이션(RENAME COLUMN + mtime=0 강제 재동기화) |
 | 2026-03-10 | fix | my-session-wrap 2.9.1 | `SKILL.md` — `next-handoff.sh` 탐색 `ls` → `find` 교체: 와일드카드 버전 번호·경로 하드코딩 문제 해소, `$HOME/.claude` 전체를 재귀 탐색하여 개발 레포/marketplaces/cache 어디서든 동작 |
 | 2026-03-10 | feat | - | `shared/session-parser.js` — `normalizeCodexEntries()` 추가: Codex JSONL(`event_msg`/`response_item`)을 events 테이블용 이벤트 배열로 정규화, export 포함 |
 | 2026-03-10 | feat | - | `shared/session-db.js` — `syncSingleSession()` Codex 분기 추가 + `_findCodexSessionFile()` 추가: `codex:` prefix 감지 → codexDir DFS 탐색 → `normalizeCodexEntries()` 호출 |
