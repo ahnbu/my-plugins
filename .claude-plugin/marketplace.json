@@ -6,7 +6,7 @@
       "name": "my-session-wrap",
       "description": "Session wrap-up workflow with multi-agent analysis pipeline",
       "source": "./my-session-wrap",
-      "version": "2.9.1"
+      "version": "2.9.2"
     },
     {
       "name": "my-session-dashboard",

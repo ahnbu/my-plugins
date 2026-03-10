@@ -5,12 +5,10 @@
 "use strict";
 
 const path = require("node:path");
-const os = require("node:os");
 const fs = require("node:fs");
 
 const DB_PATH = path.join(
-  os.homedir(),
-  ".claude", "my-claude-plugins", "output", "session-dashboard", "sessions.db"
+  __dirname, "..", "..", "output", "session-dashboard", "sessions.db"
 );
 
 let input = "";

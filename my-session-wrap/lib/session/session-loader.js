@@ -6,7 +6,7 @@ const path = require("node:path");
 
 // DB 우선 파일 경로 조회 — DFS 생략 최적화
 const DEFAULT_DB_PATH = path.join(
-  os.homedir(), ".claude", "my-claude-plugins", "output", "session-dashboard", "sessions.db"
+  __dirname, "..", "..", "..", "output", "session-dashboard", "sessions.db"
 );
 
 function resolveProjectsDir(options = {}) {
