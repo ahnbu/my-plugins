@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-10 | fix | my-session-wrap 2.9.1 | `SKILL.md` — `next-handoff.sh` 탐색 `ls` → `find` 교체: 와일드카드 버전 번호·경로 하드코딩 문제 해소, `$HOME/.claude` 전체를 재귀 탐색하여 개발 레포/marketplaces/cache 어디서든 동작 |
 | 2026-03-10 | feat | - | `shared/session-parser.js` — `normalizeCodexEntries()` 추가: Codex JSONL(`event_msg`/`response_item`)을 events 테이블용 이벤트 배열로 정규화, export 포함 |
 | 2026-03-10 | feat | - | `shared/session-db.js` — `syncSingleSession()` Codex 분기 추가 + `_findCodexSessionFile()` 추가: `codex:` prefix 감지 → codexDir DFS 탐색 → `normalizeCodexEntries()` 호출 |
 | 2026-03-10 | docs | - | `my-session-dashboard/` — Bun segfault npm 전환 트레이드오프 분석 문서 삭제 (D:\CloudSync로 재편, 번호 prefix 포함 4개 파일로 분리) |

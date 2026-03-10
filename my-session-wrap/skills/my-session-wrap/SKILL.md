@@ -119,7 +119,7 @@ cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 `scripts/next-handoff.sh`를 사용하여 경로를 결정한다:
 
 ```bash
-SCRIPT=$(ls "$HOME/.claude/my-claude-plugins/my-session-wrap/skills/my-session-wrap/scripts/next-handoff.sh" "$HOME/.claude/plugins/cache/my-claude-plugins/my-session-wrap"/*/skills/my-session-wrap/scripts/next-handoff.sh 2>/dev/null | head -1)
+SCRIPT=$(find "$HOME/.claude" -path "*/my-session-wrap/scripts/next-handoff.sh" -print -quit 2>/dev/null)
 bash "$SCRIPT" "" "<요약>"
 ```
 
