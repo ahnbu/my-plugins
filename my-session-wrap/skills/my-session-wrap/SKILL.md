@@ -1,11 +1,11 @@
 ---
-name: my-session-wrap
-description: "Session wrap-up: saves a structured handoff document and creates a git commit (when git is available). Use at session end. Triggers: 'wrap', 'wrap up', 'end session', 'handoff', 'session summary', '마무리', '세션 정리', '인수인계', '오늘은 여기까지', '정리해줘', '세션 완료'"
+name: wrap
+description: "Session wrap-up: saves a structured handoff document and creates a git commit (when git is available). Use at session end. Triggers: 'wrap', '$wrap', 'wrap up', 'end session', 'handoff', 'session summary', '마무리', '세션 정리', '인수인계', '오늘은 여기까지', '정리해줘', '세션 완료'"
 ---
 
-# My Session Wrap
+# Session Wrap
 
-세션 마무리 시 실행하는 경량 워크플로우.
+세션 마무리 시 실행하는 경량 워크플로우. Claude, Codex, Gemini 공통.
 
 1. **컨텍스트 복원** — `_handoff/handoff_YYYYMMDD_01_한줄요약.md` 저장으로 다음 세션에서 즉시 재개
 2. **변경사항 반영** — (git 있을 시) commit으로 작업 이력 기록
@@ -13,12 +13,31 @@ description: "Session wrap-up: saves a structured handoff document and creates a
 ## 실행 흐름
 
 ```
-Step 1. Git 감지
-Step 1.5. 프로젝트 CLAUDE.md Wrap 체크리스트 확인
+Step 0. 런타임 감지
+Step 1. Git 감지 + 멀티 레포 그룹핑
+Step 1.5. 프로젝트 규칙 파일 Wrap 체크리스트 확인 (Claude만)
 Step 2. handoff 파일 생성
 Step 3. git commit (선택)
 Step 4. 규칙 후보 확인 + 재개 안내
 ```
+
+---
+
+## Step 0: 런타임 감지
+
+```bash
+pwsh -File "$HOME/.claude/skills/session-find/scripts/detect-runtime.ps1"
+```
+
+결과: `claude` | `codex` | `gemini` | `unknown`
+
+스크립트 실행 불가 시 환경변수로 직접 감지:
+- `$CLAUDECODE` 설정 → `claude`
+- `$CODEX_THREAD_ID` 설정 → `codex`
+- `$GEMINI_CLI` 설정 → `gemini`
+- 모두 없으면 → `unknown`
+
+이후 단계에서 `RUNTIME` 변수로 참조한다.
 
 ---
 
@@ -55,6 +74,8 @@ done | sort -u
 ---
 
 ## Step 1.5: 프로젝트 CLAUDE.md Wrap 체크리스트 확인
+
+> **이 단계는 RUNTIME = claude 인 경우에만 수행한다.** Codex/Gemini는 이 단계를 건너뛴다.
 
 프로젝트 CLAUDE.md(또는 `.claude/CLAUDE.md`)를 읽어라:
 
@@ -95,32 +116,57 @@ git diff --name-only HEAD 2>/dev/null; git diff --name-only --cached 2>/dev/null
 
 ### 2-1. 세션 ID 획득 (절대 생략 불가)
 
-아래 순서로 획득하라:
+**RUNTIME = claude:**
 
-**1차: system-reminder에서 직접 탐색 (멀티세션 안전)**
-
-현재 대화 컨텍스트의 system-reminder 메시지에 `[session_id=XXXX]` 패턴이 포함되어 있다.
-이 값을 직접 읽어라. (UserPromptSubmit hook이 매 프롬프트 직전 주입)
-
-**2차: 파일 fallback (system-reminder에서 찾지 못한 경우)**
+1차: system-reminder에 `[session_id=XXXX]` 패턴이 포함되어 있다. 이 값을 직접 읽어라.
+2차: 파일 fallback
 
 ```bash
 cat .claude/.current-session-id 2>/dev/null || echo "(획득 실패)"
 ```
 
-- 획득한 값을 handoff 문서 헤더의 `세션 ID:` 필드에 기입
-- 세션 경로를 `C:/Users/ahnbu/.claude/projects/<encoded-cwd>/<sessionId>.jsonl` 형식으로 구성하여 `세션 경로:` 필드에 기재 (`~` 단축형 금지)
+- 세션 경로: `C:/Users/ahnbu/.claude/projects/<encoded-cwd>/<sessionId>.jsonl`
 - 둘 다 비어있으면 `세션 ID: (획득 실패)`, `세션 경로: (확인 불가)` 로 기재하고 사용자에게 안내
+
+**RUNTIME = codex:**
+
+```bash
+echo $CODEX_THREAD_ID
+# PowerShell: $env:CODEX_THREAD_ID
+```
+
+- 세션 경로: `C:/Users/ahnbu/.codex/sessions/<YYYY>/<MM>/<DD>/rollout-*-<sessionId>.jsonl`
+- 미설정 시: `세션 ID: (unavailable)`, `세션 경로: (확인 불가)`
+
+**RUNTIME = gemini:**
+
+```bash
+# <project-name>: CWD의 마지막 디렉토리명
+cat "$HOME/.gemini/tmp/<project-name>/logs.json" | grep -o '"sessionId":"[^"]*"' | head -1
+```
+
+- 세션 경로: `~/.gemini/tmp/<project-name>/chats/session-*.json`
+
+**RUNTIME = unknown:**
+
+- `세션 ID: (획득 실패)`, `세션 경로: (확인 불가)` 로 기재 후 계속 진행
 
 ### 2-2. 파일 경로 생성 (절대 생략 불가)
 
 세션 작업 내용을 3-4단어로 요약한다 (예: `출력경로변경`, `세션ID-훅수정`).
 
-`scripts/next-handoff.sh`를 사용하여 경로를 결정한다:
+아래 순서로 스크립트를 실행하여 경로를 결정한다:
 
 ```bash
+# bash 우선 (Claude/Gemini 환경)
 SCRIPT=$(find "$HOME/.claude" -path "*/my-session-wrap/scripts/next-handoff.sh" -print -quit 2>/dev/null)
-bash "$SCRIPT" "" "<요약>"
+if [ -n "$SCRIPT" ]; then
+  bash "$SCRIPT" "" "<요약>"
+else
+  # pwsh 폴백 (Codex 환경)
+  SCRIPT=$(find "$HOME/.claude" -path "*/my-session-wrap/scripts/next-handoff.ps1" -print -quit 2>/dev/null)
+  pwsh -File "$SCRIPT" -Summary "<요약>"
+fi
 ```
 
 스크립트는 ProjectRoot를 다음 우선순위로 자동 결정한다:

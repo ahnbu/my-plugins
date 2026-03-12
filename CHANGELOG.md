@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-12 | refactor | my-session-wrap | `SKILL.md` 통합 리팩터링 — name: wrap, Step 0 런타임 감지(detect-runtime.ps1), 세션 ID 3분기(Claude/Codex/Gemini), bash/pwsh 스크립트 통합 호출, 관심사별 커밋 사이클 공통 적용; `next-handoff.ps1` 추가(Codex에서 이식); `template.md` 플레이스홀더 통일; `commands/wrap.md` 참조명 my-session-wrap→wrap |
 | 2026-03-12 | fix | - | `shared/session-db.js` — Gemini 자동 호출 세션 필터 확장: (claude) 태그도 제외 대상에 추가 (`(codex\|claude)` 정규식으로 통합) |
 | 2026-03-12 | fix | - | `shared/session-db.js` — Gemini 자동 호출 세션 제외: (codex) 태그 + 60초 미만 필터 추가. 82→54개 (28개 자동 호출 세션 제거) |
 | 2026-03-12 | docs | - | `20260312_Codex_Gemini_호출구분_실험일지.md`, `_handoff/handoff_20260312_02_Gemini-호출구분.md` — Codex-origin Gemini 세션 구분 실험일지 및 handoff 작성: env dump 비교 정정, 옵션 A~E 비교, 최유력안(`인터셉트 wrapper + env + SessionStart mini DB`)과 남은 팩트체크 정리 |
