@@ -335,6 +335,14 @@ class SessionDB {
 
           const result = processGeminiSession(absPath, projectRoot);
           if (!result || result.metadata.userEntryCount === 0) continue;
+
+          // 자동 호출 세션 제외: (codex) 태그 감지
+          if (result.metadata.firstMessage && /\(codex\)/i.test(result.metadata.firstMessage)) continue;
+
+          // 자동 호출 세션 제외: 60초 미만 세션 스킵
+          const durationSec = (new Date(result.metadata.lastTimestamp) - new Date(result.metadata.timestamp)) / 1000;
+          if (durationSec < 60) continue;
+
           this._upsertSession(result.metadata, mtime);
           this._upsertMessages(result.metadata.sessionId, result.messages);
           countCb(0, 1);
