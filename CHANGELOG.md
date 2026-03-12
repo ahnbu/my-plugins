@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-12 | docs | - | `README.md` 업데이트 — 현행 운용 모드·플러그인 목록 반영 |
 | 2026-03-12 | chore | - | `git-hooks/check-version-sync.js`, `my-session-id/`, `my-session-wrap/hooks/check-handoff.js` 삭제 — .bak 파일로 보존 |
 | 2026-03-12 | docs | - | `_docs/` — 플러그인 하위 문서 _docs/로 통합 이동, 신규 문서(세션DB 경로 정리·훅 현황·메트릭 개선·문서복사 모드 분리) 추가 |
 | 2026-03-12 | docs | - | `_docs/20260312_SESSION-DB_레퍼런스_문서화_및_버전관리_체계_구축.md` — 세션DB 레퍼런스 작성·버전관리 3가지 방법 비교·pre-commit 훅 구현 결과 doc-save |
