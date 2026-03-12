@@ -56,7 +56,6 @@ SessionStart 훅으로 매 세션 실행. 플러그인의 `commands/` 파일을 
 | `my-session-wrap` | 세션 마무리 워크플로우 (handoff 저장 + git commit) | `/wrap` |
 | `my-cowork` | doc-coauthoring 포크 (AskUserQuestion 의무화) | `/cowork` |
 | `my-session-dashboard` | Claude Code 대화 세션 대시보드 (JSONL→JSON 전처리 + 브라우저 뷰어) | `/ss` |
-| `my-session-id` | 세션 ID 캡처 및 훅 이벤트별 비교 | - |
 
 ## 배포 워크플로우
 
@@ -94,6 +93,7 @@ CLAUDECODE="" claude plugin update <plugin-name>@my-claude-plugins
 
 - **소스 레포 DB** (정본): `output/session-dashboard/sessions.db` — 모든 훅·커맨드·스킬이 런타임에 읽고 쓰는 대상
 - DB 경로 결정: `__dirname` 기준 상대경로로 해결. 절대경로 하드코딩 금지.
+- 스키마·파일 맵·CLI 변경 시 `SESSION-DB.md` 변경 이력 표 갱신 필수. (스키마 레퍼런스: `SESSION-DB.md`)
 
 ## 문서 파일 이름 규칙
 

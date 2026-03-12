@@ -10,6 +10,8 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-12 | docs | - | `SESSION-DB.md` — 작성일·기준 커밋 메타, 변경 이력 표(섹션 8) 추가; `CLAUDE.md` — 세션 DB 변경 시 SESSION-DB.md 갱신 규칙 추가 |
+| 2026-03-12 | docs | - | `SESSION-DB.md` — 세션 DB 레퍼런스 최초 작성 (스키마·데이터 흐름·파일 맵·CLI API·확장 가이드) |
 | 2026-03-12 | feat | - | `shared/session-parser.js` — `processGeminiSession()`, `normalizeGeminiEntries()` 추가: Gemini CLI `session-*.json` 파싱, thoughts/toolCalls 정규화, 토큰 합산(`input+cached+tool`, `output+thoughts`) |
 | 2026-03-12 | feat | - | `shared/session-db.js` — Gemini 세션 DB 통합: `geminiDir` 생성자 옵션, `_syncGeminiDir()` + `_findSessionByFilePath()` 추가, `syncSingleSession()` gemini: 분기, `idx_sessions_file_path` 인덱스 추가 |
 | 2026-03-12 | feat | - | `shared/query-sessions.js` — `--scope gemini` 필터 추가 |
