@@ -10,6 +10,7 @@
 
 | 날짜 | 타입 | 버전 | 변경 내용 |
 |------|------|------|-----------|
+| 2026-03-12 | feat | my-session-dashboard | `index.html` — Gemini 탭 UI 추가: CSS 변수·배지·세션 아이템 스타일, 타입 필터 버튼, stats 카운트, 프로젝트 필터 분기 |
 | 2026-03-12 | docs | - | `README.md` 업데이트 — 현행 운용 모드·플러그인 목록 반영 |
 | 2026-03-12 | chore | - | `git-hooks/check-version-sync.js`, `my-session-id/`, `my-session-wrap/hooks/check-handoff.js` 삭제 — .bak 파일로 보존 |
 | 2026-03-12 | docs | - | `_docs/` — 플러그인 하위 문서 _docs/로 통합 이동, 신규 문서(세션DB 경로 정리·훅 현황·메트릭 개선·문서복사 모드 분리) 추가 |
